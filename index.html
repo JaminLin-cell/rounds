@@ -1,0 +1,1575 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="查房">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>查房助手</title>
+<style>
+:root{
+  --bg:#f6f6f7; --card:#fff; --text:#111; --muted:#86868b; --faint:#b4b4b9; --line:#ececee;
+  --accent:#0a7cff; --accent-soft:#e8f1ff; --red:#e5372b; --blue:#0a7cff; --amber:#c27400; --green:#1f9d55; --chip:#f1f1f3;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#000; --card:#151516; --text:#f2f2f4; --muted:#8e8e93; --faint:#55555a; --line:#262628;
+    --accent:#3d9bff; --accent-soft:#132640; --red:#ff5a4f; --blue:#5aa8ff; --amber:#f0a73a; --green:#34c26b; --chip:#232325;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font:15px/1.4 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif;
+  padding:env(safe-area-inset-top) 0 calc(58px + env(safe-area-inset-bottom));min-height:100vh;-webkit-text-size-adjust:100%}
+button,input,textarea,select{font:inherit;color:inherit}
+input,textarea,select{font-size:16px}
+svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 16px 6px;display:flex;align-items:center;gap:8px}
+.top h1{font-size:17px;font-weight:600;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .sub{font-size:13px;color:var(--muted);font-weight:400;margin-left:4px}
+.ib{border:0;background:none;padding:6px;color:var(--accent);cursor:pointer;display:flex;align-items:center;font-size:15px}
+.ib:disabled{opacity:.25}
+.wrap{padding:4px 12px 24px}
+/* week strip */
+.cal{background:var(--bg);position:sticky;top:44px;z-index:4;padding:0 0 6px}
+.calhead{display:flex;align-items:center;padding:0 16px 2px;font-size:13px;color:var(--muted);gap:8px}
+.calhead .m{position:relative;flex:1}
+.calhead input{position:absolute;inset:0;opacity:0;width:100%}
+.calhead button{border:0;background:none;color:var(--accent);font-size:13px;padding:2px 0;cursor:pointer}
+.weeks{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.weeks::-webkit-scrollbar{display:none}
+.week{flex:0 0 100%;scroll-snap-align:start;display:grid;grid-template-columns:repeat(7,1fr);padding:0 10px}
+.day{border:0;background:none;padding:4px 0 6px;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer}
+.day .w{font-size:10px;color:var(--muted)}
+.day .n{font-size:15px;width:30px;height:30px;line-height:30px;border-radius:50%;text-align:center}
+.day.today .n{color:var(--accent);font-weight:600}
+.day.sel .n{background:var(--text);color:var(--bg);font-weight:600}
+.dot{width:5px;height:5px;border-radius:50%;background:transparent;display:inline-block}
+.dot.on{background:var(--muted)} .dot.ok{background:var(--green)} .dot.pend{background:var(--amber)} .dot.late{background:var(--red)}
+/* month grid (surgery tab) */
+.mhead{display:flex;align-items:center;justify-content:space-between;padding:0 10px 4px}
+.mhead b{font-weight:600;font-size:15px}
+.mgrid{display:grid;grid-template-columns:repeat(7,1fr);padding:0 8px;gap:2px}
+.mgrid .wh{font-size:10px;color:var(--muted);text-align:center;padding:2px 0}
+.mcell{border:0;background:none;border-radius:10px;padding:5px 0 4px;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:46px;cursor:pointer}
+.mcell .n{font-size:14px}
+.mcell.out .n{color:var(--faint)}
+.mcell.today .n{color:var(--accent);font-weight:600}
+.mcell.sel{background:var(--text)} .mcell.sel .n{color:var(--bg);font-weight:600}
+.mcell .c{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:3px}
+.mcell.sel .c{color:var(--bg)}
+.seg{display:flex;gap:6px;overflow-x:auto;padding:2px 12px 6px;scrollbar-width:none}
+.seg button{border:1px solid var(--line);background:none;border-radius:999px;padding:3px 11px;font-size:13px;white-space:nowrap;color:var(--muted)}
+.seg button.on{border-color:var(--text);color:var(--text)}
+.group{font-size:12px;color:var(--muted);padding:10px 4px 4px;letter-spacing:.02em}
+.list{background:var(--card);border-radius:12px;overflow:hidden}
+.srow{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+.srow:last-child{border-bottom:0}
+.srow .act{position:absolute;top:0;right:0;bottom:0;width:84px;display:none}
+.srow.sw .act{display:flex}
+.srow .act button{flex:1;border:0;background:var(--red);color:#fff;font-size:14px}
+.row{position:relative;background:var(--card);display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:transform .18s ease;touch-action:pan-y}
+.row.drag{transition:none}
+.who{flex:none;width:58px}
+.who .b{font:600 14px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:-.02em}
+.who .nm{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who .nm.lab{color:var(--accent);font-weight:600}
+.who .b.moved{color:var(--amber)}
+.dx{flex:1;min-width:0;font-size:15px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.dx.empty{color:var(--faint);font-size:13px}
+.side{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.pod{font-weight:600;color:var(--accent);font-size:14px;white-space:nowrap}
+.mk{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;white-space:nowrap}
+.mk.lab{color:var(--accent);border-color:var(--accent)}
+.remind{background:var(--card);border-radius:12px;padding:10px 12px;margin:6px 0 4px}
+.remind .h{font-size:12px;color:var(--muted);margin-bottom:4px;display:flex}
+.remind .h .sp{flex:1}
+.remind .r{display:flex;gap:8px;padding:4px 0;font-size:14px;cursor:pointer;align-items:baseline}
+.remind .r .b{font:600 13px ui-monospace,Menlo,monospace;width:52px;flex:none}
+.remind .r.late{color:var(--red)}
+.card{background:var(--card);border-radius:12px;padding:12px;margin:10px 0}
+.card h2{font-size:12px;color:var(--muted);font-weight:500;margin:0 0 8px;display:flex;align-items:center;gap:6px;letter-spacing:.02em}
+.card h2 .sp{flex:1}
+.card h2 button{border:0;background:none;color:var(--accent);font-size:13px;padding:2px 4px;cursor:pointer}
+.big{font-size:18px;font-weight:600;line-height:1.35}
+.muted{color:var(--muted)} .faint{color:var(--faint)} .small{font-size:13px}
+.idline{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-top:4px;flex-wrap:wrap}
+.sexsw{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.sexsw button{border:0;background:none;padding:1px 9px;font-size:12px;color:var(--muted);cursor:pointer}
+.sexsw button.on{background:var(--text);color:var(--bg)}
+.hx{margin:8px 0 0;padding:0;list-style:none;font-size:14px}
+.hx li{margin:3px 0}
+.hx .tag{color:var(--red);font-weight:500}
+.kv{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:14px;margin-top:6px}
+.kv b{font-weight:500;color:var(--muted);font-size:12px;margin-right:3px}
+.st{display:grid;grid-template-columns:44px 1fr;gap:6px 8px;font-size:14px;align-items:start}
+.st .k{font-size:12px;color:var(--muted);padding-top:1px;cursor:pointer}
+.st .v{cursor:pointer;min-width:0}
+.st .v .none{color:var(--faint)}
+.st .since{font-size:11px;color:var(--faint);margin-left:4px}
+.st .cul{color:var(--red);font-weight:500}
+.st .ex{display:flex;align-items:baseline;gap:6px}
+.st .ex span{flex:1}
+.st .ex button,.xbtn{border:0;background:none;color:var(--faint);font-size:16px;padding:0 4px;cursor:pointer}
+.labs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 4px}
+.lab{cursor:pointer}
+.lab .k{font-size:11px;color:var(--muted)}
+.lab .v{font:600 16px ui-monospace,SFMono-Regular,Menlo,monospace}
+.lab .v.H{color:var(--red)} .lab .v.L{color:var(--blue)} .lab .v.old{color:var(--faint);font-weight:400}
+.lab .p{font-size:11px;color:var(--faint)}
+table.io{width:100%;border-collapse:collapse;font-size:14px}
+table.io th{font-size:11px;color:var(--muted);font-weight:500;text-align:right;padding:0 0 4px}
+table.io th:first-child{text-align:left}
+table.io td{padding:4px 0;border-top:1px solid var(--line);text-align:right;font-family:ui-monospace,Menlo,monospace;vertical-align:top}
+table.io td:first-child{text-align:left;font-family:inherit}
+table.io td.t{font-weight:600}
+table.io .sub{display:block;font-size:11px;color:var(--muted);font-family:-apple-system,sans-serif}
+.meds{margin:0;padding:0;list-style:none}
+.meds li{display:flex;gap:6px;padding:3px 0;font-size:14px;border-bottom:1px solid var(--line)}
+.meds li:last-child{border-bottom:0}
+.meds .mn{flex:1}
+.meds .mf{color:var(--muted);white-space:nowrap;font-size:13px}
+.meds li.add .mn{font-weight:600}
+.meds li.add .mn:after{content:" 新";font-size:10px;color:var(--accent);font-weight:500}
+.meds li.chg .mf{color:var(--amber)}
+.meds li.stop{color:var(--faint);text-decoration:line-through}
+.own{font-size:10px;padding:0 4px;border-radius:4px;border:1px solid var(--line);color:var(--muted);margin-left:4px;vertical-align:1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button,.opt{border:1px solid var(--line);background:none;border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer;white-space:nowrap}
+.chips button.on,.opt.on{border-color:var(--text);background:var(--text);color:var(--bg)}
+.chips button.cur{border-color:var(--accent);color:var(--accent)}
+.chips button:active{background:var(--chip)}
+.cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.cats::-webkit-scrollbar{display:none}
+.cats button{flex:none;border:0;background:var(--chip);border-radius:8px;padding:6px 12px;font-size:14px;cursor:pointer}
+.cats button.on{background:var(--text);color:var(--bg)}
+.panel{margin-top:8px;padding:10px;border-radius:10px;background:var(--bg)}
+.panel .lbl{font-size:11px;color:var(--muted);margin:8px 0 4px}
+.panel .lbl:first-child{margin-top:0}
+.inl{display:flex;gap:6px;margin-top:6px}
+.inl input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--card)}
+.addline{display:flex;gap:6px;margin-top:8px}
+.addline input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--bg)}
+.btn{border:0;border-radius:10px;padding:9px 14px;background:var(--text);color:var(--bg);font-weight:600;cursor:pointer}
+.btn.sec{background:var(--chip);color:var(--text);font-weight:500}
+.btn.sm{padding:6px 11px;font-size:13px;border-radius:8px}
+.btn.danger{background:var(--red);color:#fff}
+.btn:disabled{opacity:.5}
+.todos{list-style:none;margin:8px 0 0;padding:0}
+.todos li{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
+.todos li.done span.t{color:var(--faint);text-decoration:line-through}
+.todos input[type=checkbox],.chk input{width:20px;height:20px;accent-color:var(--text);flex:none}
+.todos span.t{flex:1}
+.todos .due{font-size:12px;color:var(--accent);border:0;background:none;padding:0 2px;cursor:pointer;white-space:nowrap}
+.todos .due.none{color:var(--faint)}
+.chk{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer}
+.chk:first-of-type{border-top:0}
+.chk .when{font-size:11px;color:var(--faint);margin-left:auto}
+.prog{font-size:12px;font-weight:600;white-space:nowrap}
+.prog.ok{color:var(--green)} .prog.pend{color:var(--amber)} .prog.late{color:var(--red)}
+.surg{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.surg:last-child{border-bottom:0}
+.surg .room{font:600 13px ui-monospace,Menlo,monospace;width:40px;flex:none}
+.surg .mid{flex:1;min-width:0}
+.surg .mid .p{font-weight:600}
+.surg .mid .s{font-size:12px;color:var(--muted)}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+.tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 0 5px;font-size:10px;color:var(--muted);text-decoration:none}
+.tabbar a.on{color:var(--text)}
+textarea.paste{width:100%;min-height:180px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--card);font:13px/1.4 ui-monospace,Menlo,monospace}
+label.f{display:block;font-size:12px;color:var(--muted);margin:10px 0 3px}
+input.t,select.t,textarea.t{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg)}
+.hint{font-size:12px;color:var(--accent);margin-top:3px;min-height:16px}
+.hint.bad{color:var(--red)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.labform{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 10px}
+.labform label{display:flex;align-items:center;gap:6px;font-size:13px}
+.labform label span{width:42px;color:var(--muted)}
+.labform input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:7px 8px;background:var(--bg);font-family:ui-monospace,Menlo,monospace}
+.iorow{border-top:1px solid var(--line);padding:8px 0}
+.iorow .l1{display:flex;gap:6px;align-items:center}
+.iorow input{border:1px solid var(--line);border-radius:8px;padding:6px 7px;background:var(--bg);min-width:0}
+.iorow input.n{flex:1.4} .iorow input.v{flex:1;width:0;font-family:ui-monospace,Menlo,monospace}
+.iorow .cat{font-size:10px;color:var(--muted);width:34px;flex:none}
+.iorow .tot{font:600 13px ui-monospace,Menlo,monospace;width:46px;text-align:right;flex:none}
+.iorow .colors{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;padding-left:40px}
+.iorow .colors button{border:1px solid var(--line);background:none;border-radius:999px;padding:2px 8px;font-size:12px}
+.iorow .colors button.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.iohead{display:flex;gap:6px;font-size:10px;color:var(--muted);padding-left:40px}
+.iohead span{flex:1;text-align:center}
+.sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20;display:flex;align-items:flex-end}
+.sheet{background:var(--card);width:100%;max-height:92vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom))}
+.sheet h3{margin:0 0 6px;font-size:16px;font-weight:600;display:flex;align-items:center}
+.sheet h3 .sp{flex:1}
+.row2{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.row2 .btn{flex:1}
+.toast{position:fixed;left:50%;bottom:calc(72px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1c1c1e;color:#fff;padding:9px 14px;border-radius:10px;font-size:14px;z-index:30;max-width:92vw;display:flex;gap:14px;align-items:center}
+.toast span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toast button{border:0;background:none;color:#5aa8ff;font-weight:600;padding:0;flex:none}
+.sum li{margin:2px 0}
+table.hist{border-collapse:collapse;font-size:12px;width:100%}
+table.hist th,table.hist td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+table.hist th{color:var(--accent);cursor:pointer}
+table.hist th:first-child,table.hist td:first-child{text-align:left;color:inherit}
+.H{color:var(--red)} .L{color:var(--blue)}
+.histwrap{overflow-x:auto}
+.empty-state{text-align:center;color:var(--muted);padding:32px 16px;font-size:14px}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.quick button{flex:1;min-width:64px}
+code{font-size:12px;background:var(--chip);padding:1px 4px;border-radius:4px}
+.lrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:14px}
+.lrow:first-of-type{border-top:0}
+.lrow .grow{flex:1;min-width:0}
+.wdsel{display:flex;gap:4px}
+.wdsel button{border:1px solid var(--line);background:none;border-radius:6px;width:28px;height:28px;font-size:12px;padding:0}
+.wdsel button.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.warnbox{font-size:12px;color:var(--red);margin-top:4px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav class="tabbar" id="tabbar"></nav>
+<script src="core.js"></script>
+<script>
+'use strict';
+const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.133.0/+esm';
+const MODEL = 'claude-opus-5-5';
+
+S = loadState();
+let selDate = today();           // patient list date
+let orSel = today();             // surgery tab selected date
+let orMonth = today().slice(0,7);
+let orderUI = {mrn:null, cat:null};
+let monthAsked = false;
+try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
+
+// ---------- helpers ----------
+function $(s){ return document.querySelector(s); }
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function save(){ if(!saveState()){ toast('儲存失敗，手機空間可能不足'); return false; } return true; }
+function toast(msg, action){
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const t = document.createElement('div'); t.className = 'toast';
+  t.innerHTML = `<span>${esc(msg)}</span>` + (action ? `<button>${esc(action.label)}</button>` : '');
+  if(action) t.querySelector('button').onclick = () => { action.fn(); t.remove(); };
+  document.body.appendChild(t); setTimeout(() => t.remove(), action ? 5000 : 2400);
+}
+// Every change worth undoing goes through act(): snapshot, change, save, re-render, offer "復原".
+const UNDO = [];
+function act(label, fn, opts){
+  const before = JSON.stringify(S);
+  const r = fn();
+  save();
+  UNDO.unshift({label, before, at:new Date()}); if(UNDO.length > 20) UNDO.pop();
+  render();
+  if(!opts || opts.toast !== false) toast(label, {label:'復原', fn:() => undoAt(0)});
+  return r;
+}
+function undoAt(i){
+  const u = UNDO[i]; if(!u) return;
+  document.querySelectorAll('.sheetbg').forEach(s => s.remove());
+  S = migrate(JSON.parse(u.before)); UNDO.splice(0, i + 1); save(); render(); toast('已復原：' + u.label);
+}
+
+// ---------- Claude ----------
+let _Anthropic;
+async function askClaude(content, schema, system){
+  const key = S.settings.apiKey;
+  if(!key) throw new Error('請先到「設定」輸入 Claude API key');
+  if(!_Anthropic) _Anthropic = (await import(SDK_URL)).default;
+  const client = new _Anthropic({apiKey:key, dangerouslyAllowBrowser:true});
+  let res;
+  try{ res = await client.beta.messages.create({
+    model: MODEL, max_tokens: 8000,
+    betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default',
+    system,
+    output_config: {effort:'low', format:{type:'json_schema', schema}},
+    messages: [{role:'user', content}]
+  }); }
+  catch(err){
+    if(err.status === 401) throw new Error('API key 無效，請到「設定」重新輸入');
+    if(err.status === 429) throw new Error('請求太頻繁，稍等一下再試');
+    if(err.status === 400 && /credit/i.test(err.message)) throw new Error('API 帳戶餘額不足');
+    throw err;
+  }
+  if(res.stop_reason === 'refusal') throw new Error('Claude 無法處理這份內容');
+  return JSON.parse(res.content.filter(b => b.type === 'text').map(b => b.text).join(''));
+}
+async function fileToB64(file){
+  const img = await createImageBitmap(file);
+  const sc = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width*sc); c.height = Math.round(img.height*sc);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.85).split(',')[1];
+}
+async function buildContent(files, text, instruction){
+  const content = [];
+  for(const f of files) content.push({type:'image', source:{type:'base64', media_type:'image/jpeg', data: await fileToB64(f)}});
+  if(text) content.push({type:'text', text:'以下是從 HIS 複製的文字：\n' + text});
+  content.push({type:'text', text:instruction});
+  return content;
+}
+const N_NULL = {type:['number','null']}, S_NULL = {type:['string','null']};
+const LAB_SCHEMA = {
+  type:'object', additionalProperties:false, required:['results'],
+  properties:{results:{type:'array', items:{
+    type:'object', additionalProperties:false, required:['date', ...LAB_KEYS.map(k=>k[0])],
+    properties:Object.fromEntries([['date',{type:'string'}], ...LAB_KEYS.map(k=>[k[0], N_NULL])])
+  }}}
+};
+const LAB_SYSTEM = `你負責從台灣長庚醫院 HIS 4.0「檢驗報告」畫面的照片或複製文字中擷取檢驗數值。
+只擷取這些項目，並對應到指定的 key：
+WBC (W.B.C), Hb (Hemoglobin / Hemoglo...), Plt (Platelets), CRP, BUN, Crea (Creatinine(B)，血液肌酸酐，不是尿液), Na, K, AST (GOT), ALT (GPT), BilT (Bilirubin total)。
+畫面常是多個日期欄位並排（例如 20230725 0537）。每個有數值的日期各輸出一筆，date 用 YYYY-MM-DD，同一天多次抽血取最新一次。
+沒有出現的項目填 null。只填畫面上確實看得到的數字，不要推測；數值旁的 H/L 標記去掉，只留數字。`;
+const IO_SCHEMA = {
+  type:'object', additionalProperties:false, required:['date','items'],
+  properties:{date:S_NULL, items:{type:'array', items:{
+    type:'object', additionalProperties:false, required:['name','category','d','e','n','total'],
+    properties:{name:{type:'string'}, category:{type:'string', enum:['intake','urine','vb','other']}, d:N_NULL, e:N_NULL, n:N_NULL, total:N_NULL}
+  }}}
+};
+const IO_SYSTEM = `你負責從台灣長庚醫院 HIS「護理紀錄 I/O（攝入排出統計）」畫面的照片中擷取 I/O。
+取畫面上最近一天。每個攝入/排出項目一筆：
+- name：畫面上的名稱但盡量簡短（例如 飲食、藥物(含水)、尿液自解、尿管、VB(L)、VB(R)、JP、NG、STOOL LOSS）。兩顆 VB 要分開。
+- category：intake（飲食、藥物含水、點滴、輸血）、urine（自解尿、尿管、Foley、cystostomy、PCN）、vb（VB、JP、hemovac 等引流）、other（NG、糞便、嘔吐等）。
+- d / e / n：白班、小夜、大夜的量（cc）。畫面若有三班統計就填，沒有就 null。
+- total：全天統計；沒有全天值但有三班時填三班加總。
+值為 0 的項目也要列出。date 為統計日期 YYYY-MM-DD，看不到則 null。不要推測看不清楚的數字。`;
+const ORG_SCHEMA = {
+  type:'object', additionalProperties:false, required:['patients'],
+  properties:{patients:{type:'array', items:{
+    type:'object', additionalProperties:false,
+    required:['key','short','dx','opDate','sex','hx','ipsa','pv','mri','anti','exams','cultures','note'],
+    properties:{
+      key:{type:'string'}, short:S_NULL, dx:S_NULL, opDate:S_NULL, sex:{type:['string','null'], enum:['M','F',null]},
+      hx:{type:'array', items:{type:'string'}}, ipsa:S_NULL, pv:S_NULL, mri:S_NULL,
+      anti:{type:'array', items:{type:'object', additionalProperties:false, required:['drug','holdDays'], properties:{drug:{type:'string'}, holdDays:N_NULL}}},
+      exams:{type:'array', items:{type:'object', additionalProperties:false, required:['text','date'], properties:{text:{type:'string'}, date:S_NULL}}},
+      cultures:{type:'array', items:{type:'object', additionalProperties:false, required:['site','org'], properties:{site:{type:'string'}, org:{type:'string'}}}},
+      note:S_NULL
+    }
+  }}}
+};
+const ORG_SYSTEM = `你幫一位台灣泌尿科住院醫師整理他自己打的病人重點筆記（中英夾雜）。把每位病人的文字分類到欄位，保留他原本的寫法，不要翻譯、不要改寫醫學內容、不要補充沒寫的資訊。
+- dx：這次住院的主問題，去掉開頭的 #、POD 數字與手術日期。
+- short：手機清單用的精簡版，最多約 20 個字元，格式「側別 + 疾病或術式 + 計數」，依病人來源：
+  手術：術式，例如 Lt RAPN、RARP、TURBT（POD 由 App 計算，不要寫進 short）
+  化療／標靶／免疫：癌別 · 療程 C#D#，例如 Bladder UC · GC C3D1、mCRPC · Docetaxel C2D1
+  急診感染：診斷 + Abx，例如 Lt APN urosepsis Abx（天數由 App 計算，寫 Abx 就好）
+  急診阻塞／出血：AUR · post Foley、Clot retention · CBI、Lt UV stone · s/p DJ 10/29
+  新診斷 staging：New Bladder UC · staging
+  他寫了「簡稱 | 完整診斷」時，簡稱就是 short。
+- opDate：手術日 YYYY-MM-DD。寫「POD n」就用今天日期減 n 天；寫「OP 11/5」就換算；沒寫就 null。
+- sex：文中寫 70F、M、F 等才填，否則 null。
+- hx：underlying disease，每個疾病一項；縮排的續行（s/p 治療經過）併入上一項。抗凝／抗血小板藥寫在對應疾病那一項裡（例如 CAD s/p PCI, on aspirin）。
+- ipsa / pv / mri：前列腺相關，沒有就 null；pv 只填數字。
+- anti：提到的抗凝血／抗血小板藥。holdDays 只有明確寫了停幾天才填，否則 null。
+- exams：已排定的檢查，一項一筆，text 保留原文（例如 Chest CT 11/2 10am），date 為 YYYY-MM-DD 或 null。
+- cultures：培養結果，例如 {site:"U/C", org:"E. coli"}。
+- note：其他無法分類的內容，保留原文換行；沒有就 null。
+key 照輸入原樣回傳。`;
+async function organizeNotes(items){
+  const payload = `今天是 ${today()}。\n\n` + items.map(i => `=== key: ${i.key} ===\n${i.text}`).join('\n\n');
+  const res = await askClaude([{type:'text', text:payload}], ORG_SCHEMA, ORG_SYSTEM);
+  const out = {};
+  for(const r of res.patients || []){
+    const o = {};
+    for(const k of ['short','dx','opDate','ipsa','pv','mri','note','sex']) if(has(r[k])) o[k] = String(r[k]).trim();
+    if(o.dx) o.dx = stripHash(o.dx);
+    if(o.short) o.short = stripHash(o.short);
+    if(o.opDate && !/^\d{4}-\d{2}-\d{2}$/.test(o.opDate)) delete o.opDate;
+    if(r.hx && r.hx.length) o.hx = r.hx.map(s => s.trim()).filter(Boolean);
+    o.anti = (r.anti || []).map(a => ({drug:a.drug, holdDays:a.holdDays}));
+    o.exams = (r.exams || []).map(e => ({id:uid(), text:e.text, date:e.date}));
+    o.cultures = r.cultures || [];
+    const cyc = parseCycle(o.short || o.dx, today()); if(cyc) o.cycle = cyc;
+    out[r.key] = o;
+  }
+  return out;
+}
+// Claude when a key is set, otherwise the built-in rules.
+async function organize(items){
+  if(S.settings.apiKey){
+    try{ return {info: await organizeNotes(items), by:'claude'}; }
+    catch(err){ const info = {}; for(const i of items) info[i.key] = parseNotes(i.text.split('\n'), today()); return {info, by:'rules', err:err.message}; }
+  }
+  const info = {}; for(const i of items) info[i.key] = parseNotes(i.text.split('\n'), today());
+  return {info, by:'rules'};
+}
+// Supplement: add to what is there instead of replacing Hx.
+function mergeInfo(p, info){
+  const hx = String(p.hx || '').split('\n').filter(Boolean);
+  const keep = {...info}; delete keep.hx;
+  applyInfo(p, keep);
+  for(const h of info.hx || []) if(!hx.includes(h)) hx.push(h);
+  p.hx = hx.join('\n');
+}
+
+// ---------- sheet ----------
+function sheet(html, onMount){
+  const bg = document.createElement('div'); bg.className='sheetbg';
+  bg.innerHTML = `<div class="sheet">${html}</div>`;
+  bg.addEventListener('click', e => { if(e.target === bg) close(); });
+  const close = () => { bg.remove(); };
+  document.body.appendChild(bg);
+  const el = bg.querySelector('.sheet');
+  const c = el.querySelector('[data-close]'); if(c) c.onclick = close;
+  onMount && onMount(el, close);
+  return close;
+}
+function pickDate(title, start, cb){
+  const opts = [['今天',0],['明天',1],['後天',2],['3 天後',3]];
+  sheet(`<h3>${esc(title)}<span class="sp"></span><button class="ib" data-close>取消</button></h3>
+    <div class="quick">${opts.map(([l,n]) => `<button class="btn sec" data-n="${n}">${l}<div class="small muted">${md(addDays(today(),n))}（${wd(addDays(today(),n))}）</div></button>`).join('')}</div>
+    <label class="f">或選日期</label><input class="t" type="date" data-d value="${start || today()}">
+    <div class="row2"><button class="btn" data-ok>確定</button></div>`, (el, close) => {
+      el.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { close(); cb(addDays(today(), +b.dataset.n)); });
+      el.querySelector('[data-ok]').onclick = () => { const v = el.querySelector('[data-d]').value; if(v){ close(); cb(v); } };
+    });
+}
+
+// ---------- icons ----------
+const ICON = {
+  list:'<svg class="i" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>',
+  cal:'<svg class="i" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>',
+  import:'<svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></svg>',
+  gear:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></svg>',
+  plus:'<svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  back:'<svg class="i" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
+  fwd:'<svg class="i" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
+  up:'<svg class="i" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>',
+  down:'<svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'
+};
+
+// ---------- tab bar ----------
+function tabbar(route){
+  const tabs = [['#/',ICON.list,'病人',['','p']],['#/or',ICON.cal,'手術',['or']],['#/import',ICON.import,'匯入',['import']],['#/settings',ICON.gear,'設定',['settings']]];
+  $('#tabbar').innerHTML = tabs.map(([h,i,l,rs]) => `<a href="${h}" class="${rs.includes(route)?'on':''}">${i}${l}</a>`).join('');
+}
+
+// ================= patient list =================
+function weekStrip(sel, dotFn){
+  const s = new Date(sel+'T00:00');
+  const start = new Date(s); start.setDate(s.getDate() - s.getDay() - 7*26);
+  let html = '<div class="weeks" id="weeks">';
+  for(let w = 0; w < 53; w++){
+    html += '<div class="week">';
+    for(let i = 0; i < 7; i++){
+      const d = new Date(start); d.setDate(start.getDate() + w*7 + i);
+      const k = ymd(d);
+      html += `<button class="day ${k===sel?'sel':''} ${k===today()?'today':''}" data-date="${k}"><span class="w">${WD[i]}</span><span class="n">${d.getDate()}</span><span class="dot ${dotFn(k)}"></span></button>`;
+    }
+    html += '</div>';
+  }
+  return html + '</div>';
+}
+function listDot(d){
+  return Object.values(S.patients).some(p => (p.plannedAdm === d && isPending(p)) || (p.todos||[]).some(x => x.due === d && !x.done)) ? 'on' : '';
+}
+function attendingsForMonth(m){
+  const conf = S.months[m];
+  const list = conf ? conf.attendings.map(a => a.code) : [];
+  for(const a of S.attendings) if(!list.includes(a)) list.push(a);
+  return list;
+}
+function viewList(){
+  const d = selDate, t = today();
+  const f = S.settings.filter || '';
+  const pts = patientsOn(d, f);
+  const atts = S.attendings;
+  const sd = new Date(d+'T00:00');
+  let html = `<div class="top"><h1>${md(d)}（${wd(d)}）<span class="sub">${pts.length} 位${d===t?'':d<t?' · 過去':' · 未來'}</span></h1>
+    <button class="ib" data-add aria-label="新增病人">${ICON.plus}</button></div>
+    <div class="cal"><div class="calhead"><span class="m">${sd.getFullYear()} 年 ${sd.getMonth()+1} 月<input type="date" id="jump" value="${d}"></span>${d!==t?`<button data-date="${t}">回到今天</button>`:''}</div>${weekStrip(d, listDot)}</div>`;
+  if(atts.length > 1) html += `<div class="seg">${['', ...atts].map(a => `<button data-filter="${esc(a)}" class="${a===f?'on':''}">${a?esc(a):'全部'}</button>`).join('')}</div>`;
+  html += '<div class="wrap">';
+  html += remindersHtml(d);
+  if(!pts.length){
+    html += `<div class="empty-state">${d===t?'今天還沒有病人':'這天沒有病人'}<br><br>${d===t?'<a href="#/import" style="color:var(--accent);text-decoration:none">匯入 TeamPro patient list</a> 或 ':''}<span data-add style="color:var(--accent);cursor:pointer">手動新增</span></div>`;
+  } else {
+    let lastAtt = null, open = false;
+    for(const p of pts){
+      if(!f && atts.length > 1 && p.attending !== lastAtt){
+        if(open) html += '</div>';
+        html += `<div class="group">${esc(p.attending || '未指定')}</div><div class="list">`; open = true; lastAtt = p.attending;
+      } else if(!open){ html += '<div class="list">'; open = true; }
+      const st = stayOn(p, d);
+      const dx = st.current ? displayShort(p, d) : st.dx;
+      const pod = podLabel(st.current ? p.opDate : st.opDate, d);
+      const moved = d === t && p.bedChangedOn === t;
+      const lab = st.current && labDue(p, d).length;
+      const marks = [];
+      if(st.current && isPending(p)) marks.push('<span class="mk">預約</span>');
+      else if(st.current && p.adm && dayDiff(p.adm, d) >= 0 && dayDiff(p.adm, d) <= 1) marks.push('<span class="mk">新</span>');
+      if(st.current && p.mbd === d) marks.push('<span class="mk">MBD</span>');
+      if(st.current && d === t && medDiffCount(p)) marks.push('<span class="mk">藥</span>');
+      if(lab) marks.push('<span class="mk lab">Lab</span>');
+      html += `<div class="srow"><div class="act"><button data-remove="${p.mrn}">移除</button></div>
+        <div class="row" data-go="${p.mrn}">
+        <div class="who"><div class="b ${moved?'moved':''}">${esc(bedShort(p.bed) || '—')}</div><div class="nm ${lab?'lab':''}">${esc(p.name || '#' + p.mrn)}</div></div>
+        <div class="dx ${dx?'':'empty'}">${dx ? esc(dx) : '點此填主診斷'}</div>
+        ${pod || marks.length ? `<div class="side">${pod?`<span class="pod">${pod}</span>`:''}${marks.join('')}</div>` : ''}</div></div>`;
+    }
+    if(open) html += '</div>';
+    html += '<div class="small faint" style="text-align:center;margin-top:10px">左滑可移除</div>';
+  }
+  html += '</div>';
+  $('#app').innerHTML = html;
+  const weeks = $('#weeks'); weeks.scrollLeft = weeks.clientWidth * 26;
+  $('#jump').onchange = e => { if(e.target.value){ selDate = e.target.value; render(); } };
+  bindSwipe();
+  maybeAskMonth();
+}
+function remindersHtml(d){
+  const t = today();
+  const rows = [];
+  for(const {p, x} of remindersOn(d)) rows.push(`<div class="r ${x.due<d?'late':''}" data-go="${p.mrn}"><span class="b">${esc(bedShort(p.bed))}</span><span>${esc(p.name)} · ${esc(x.kind === 'lab' ? '看 Lab' : x.t)}${x.due<d?` <span class="small">${md(x.due)}</span>`:''}</span></div>`);
+  if(d === t){
+    for(const s of Object.values(S.surgeries)){
+      if(s.cancelled || s.date < t) continue;
+      const st = surgState(s);
+      if(st.complete || t < addDays(s.date, -PREOP_DAYS)) continue;
+      const missing = surgItems(s).filter(c => !(s.checks||{})[c.id]).map(c => c.label).join('、');
+      rows.push(`<div class="r ${st.overdue?'late':''}" data-surg="${s.id}"><span class="b">${md(s.date)}</span><span>${esc(s.name || s.mrn)} ${esc(s.proc)} · 缺 ${esc(missing)}</span></div>`);
+    }
+  }
+  let html = rows.length ? `<div class="remind"><div class="h">提醒（${rows.length}）</div>${rows.join('')}</div>` : '';
+  if(d === t && Object.keys(S.patients).length){
+    const last = S.settings.lastBackup, n = last ? dayDiff(last, t) : null;
+    if(n === null || n >= 7) html += `<div class="remind"><div class="h">${n === null ? '還沒有備份過' : `已 ${n} 天沒備份`}<span class="sp"></span><button class="ib" style="padding:0;font-size:13px" data-backup>備份到 iCloud</button></div></div>`;
+  }
+  return html;
+}
+
+// Remove a patient from the list starting on date d (keeps data so a readmission is recognised).
+function removeFromList(p, d){
+  act(`已從 ${md(d)} 起移除 ${p.name || p.mrn}`, () => {
+    if(isPending(p) && d <= (p.plannedAdm || d)) delete S.patients[p.mrn];
+    else {
+      const st = stayOn(p, d);
+      if(st && !st.current){ const h = p.history.find(h => h.adm <= d && (!h.dischargedOn || d < h.dischargedOn)); if(h) h.dischargedOn = d; }
+      else p.dischargedOn = d;
+    }
+  });
+}
+let openRow = null;
+function closeRow(row){ row.style.transform = ''; setTimeout(() => { if(!row.style.transform) row.parentElement.classList.remove('sw'); }, 200); }
+function bindSwipe(){
+  document.querySelectorAll('.srow .row').forEach(row => {
+    let x0 = 0, y0 = 0, dx = 0, mode = null;
+    row.addEventListener('touchstart', e => {
+      if(openRow && openRow !== row){ closeRow(openRow); openRow = null; }
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; mode = null;
+    }, {passive:true});
+    row.addEventListener('touchmove', e => {
+      const mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
+      if(!mode) mode = Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(my) ? 'h' : (Math.abs(my) > 8 ? 'v' : null);
+      if(mode !== 'h') return;
+      e.preventDefault();
+      const base = openRow === row ? -84 : 0;
+      dx = Math.min(0, Math.max(-120, base + mx));
+      row.parentElement.classList.add('sw'); row.classList.add('drag'); row.style.transform = `translateX(${dx}px)`;
+    }, {passive:false});
+    row.addEventListener('touchend', () => {
+      row.classList.remove('drag');
+      if(mode !== 'h') return;
+      row.dataset.swiped = '1'; setTimeout(() => delete row.dataset.swiped, 300);
+      if(dx < -42){ row.style.transform = 'translateX(-84px)'; openRow = row; }
+      else { closeRow(row); if(openRow === row) openRow = null; }
+    });
+  });
+}
+
+// ================= patient page =================
+function latestLab(p, key){
+  const dates = Object.keys(p.labs||{}).sort().reverse();
+  let cur = null, prev = null;
+  for(const d of dates){ const v = p.labs[d][key]; if(!has(v)) continue; if(!cur) cur = {d, v:+v}; else { prev = {d, v:+v}; break; } }
+  return {cur, prev};
+}
+const flag = (v, lo, hi) => lo != null && v < lo ? 'L' : hi != null && v > hi ? 'H' : '';
+const arrow = (c, p) => !p || c === p ? '' : c > p ? '↑' : '↓';
+const fmtNum = v => Number.isInteger(v) ? String(v) : String(+v.toFixed(2));
+
+function viewDetail(mrn){
+  const p = S.patients[mrn];
+  if(!p){ location.hash = '#/'; return; }
+  if(orderUI.mrn !== mrn) orderUI = {mrn, cat:null};
+  const d = selDate;
+  const list = patientsOn(d, S.settings.filter || ''); const idx = list.findIndex(x => x.mrn === mrn);
+  const prevP = idx > 0 ? list[idx-1] : null, nextP = idx >= 0 ? list[idx+1] : null;
+  let html = `<div class="top">
+    <button class="ib" data-back aria-label="返回">${ICON.back}</button>
+    <h1>${esc(bedShort(p.bed) || (isPending(p) ? '預約' : ''))} ${esc(p.name || '#' + p.mrn)}</h1>
+    <button class="ib" data-act="paste">貼上</button>
+    <button class="ib" ${prevP?`data-go="${prevP.mrn}"`:'disabled'} aria-label="上一床">${ICON.up}</button><button class="ib" ${nextP?`data-go="${nextP.mrn}"`:'disabled'} aria-label="下一床">${ICON.down}</button>
+  </div><div class="wrap">`;
+  const hidden = S.settings.hidden || [];
+  for(const id of S.settings.layout) if(!hidden.includes(id)) html += (CARD_RENDER[id] || (() => ''))(p, d);
+  html += `<div class="row2"><button class="btn sec sm" data-act="layout">編輯版面</button><button class="btn sec sm" style="color:var(--red)" data-act="purge">永久刪除</button></div></div>`;
+  $('#app').innerHTML = html;
+  $('#app').onclick = e => detailClick(e, p);
+  $('#app').oninput = e => { if(e.target.matches('[data-ivfrate]')) orderUI.ivfRate = e.target.value; };
+}
+
+const CARD_RENDER = {
+  dx(p, d){
+    const pod = podLabel(p.opDate, d);
+    const hd = p.adm ? dayDiff(p.adm, d) + 1 : '';
+    const lines = hxLines(p);
+    return `<div class="card">
+      <h2>主診斷<span class="sp"></span><button data-act="editdx">編輯</button></h2>
+      <div class="big">${esc(displayShort(p, d) && p.dx && p.dx !== p.short ? p.dx : displayShort(p, d)) || '<span class="faint" style="font-weight:400">尚未填寫</span>'}${pod ? ` <span style="color:var(--accent)">${pod}</span>` : ''}</div>
+      <div class="idline">#${esc(p.mrn.startsWith('tmp-') ? '無病歷號' : p.mrn)}${has(p.age)?` · ${esc(p.age)}`:''}
+        <span class="sexsw"><button data-sex="M" class="${p.sex==='M'?'on':''}">M</button><button data-sex="F" class="${p.sex==='F'?'on':''}">F</button></span></div>
+      ${lines.length ? `<ul class="hx">${lines.map(l => `<li>${esc(l.text)}${l.tag?`<span class="tag">${esc(l.tag)}</span>`:''}</li>`).join('')}</ul>` : ''}
+      ${has(p.ipsa)||has(p.pv)||has(p.mri) ? `<div class="kv">
+        ${has(p.ipsa)?`<span><b>iPSA</b>${esc(p.ipsa)}</span>`:''}${has(p.pv)?`<span><b>PV</b>${esc(p.pv)} mL</span>`:''}${has(p.mri)?`<span><b>MRI</b>${esc(p.mri)}</span>`:''}</div>` : ''}
+      ${p.note ? `<div class="kv"><span style="white-space:pre-line">${esc(p.note)}</span></div>` : ''}
+      <div class="kv small muted" style="margin-top:8px">${isPending(p) ? `預約入院 ${md(p.plannedAdm)}` : (p.adm ? `入院 ${md(p.adm)}（HD${hd}）` : '')}${p.bedChangedOn===today()&&p.prevBed?` · <span style="color:var(--amber)">原床 ${esc(bedShort(p.prevBed))}</span>`:''}${p.mbd?` · MBD ${md(p.mbd)}`:''}${p.rtc?` · RTC ${md(p.rtc)}`:''}${p.dischargedOn ? ` · 出院 ${md(p.dischargedOn)}` : ''}</div>
+      ${(p.history||[]).length ? `<div class="kv small muted">${p.history.map(h => `前次住院 ${md(h.adm)}${h.dischargedOn?`–${md(h.dischargedOn)}`:''}${h.dx?`：${esc(h.dx)}`:''}`).join('<br>')}</div>` : ''}
+    </div>`;
+  },
+  status(p, d){
+    const st = p.status;
+    const none = '<span class="none">—</span>';
+    const abx = Object.entries(p.abx||{}).map(([k,s]) => `${k[0].toUpperCase()+k.slice(1)} D${dayDiff(s,d)+1}`);
+    const cul = st.cultures.map(c => `<span class="cul">${esc(c.site)}: ${esc(c.org)}</span>`);
+    const exams = st.exams.filter(e => !e.date || e.date >= addDays(d, -1));
+    return `<div class="card"><h2>Current status<span class="sp"></span><button data-act="culture">＋ Culture</button></h2>
+      <div class="st">
+        <div class="k" data-ocat="diet">Diet</div><div class="v" data-ocat="diet">${st.diet ? esc(st.diet.v) + (st.diet.since ? `<span class="since">${md(st.diet.since)}</span>` : '') : none}</div>
+        <div class="k" data-ocat="ivf">IVF</div><div class="v" data-ocat="ivf">${st.ivf ? esc(st.ivf.v) : none}</div>
+        <div class="k" data-ocat="tube">Tube</div><div class="v" data-ocat="tube">${st.tubes.length ? st.tubes.map(t => `${esc(t.name)} <span class="since" style="margin:0">D${dayDiff(t.since, d)}</span>`).join(' · ') : none}</div>
+        <div class="k">Abx</div><div class="v" data-act="culture">${abx.length ? esc(abx.join(' · ')) : '無'}${cul.length ? '<br>' + cul.join(' · ') : ''}</div>
+        ${exams.length ? `<div class="k" data-ocat="exam">Exam</div><div>${exams.map(e => `<div class="ex"><span>${esc(e.text)}</span><button data-delexam="${e.id}">×</button></div>`).join('')}</div>` : ''}
+      </div></div>`;
+  },
+  preop(p){
+    const s = linkedSurgery(p); if(!s) return '';
+    const st = surgState(s);
+    if(st.complete && today() > s.date) return '';
+    return `<div class="card"><h2>術前準備 · ${md(s.date)} ${esc(s.proc)}${s.room?` · OR${esc(s.room)}`:''}<span class="sp"></span><span class="prog ${st.color}">${st.done}/${st.total}</span></h2>
+      ${surgItems(s).map(c => `<label class="chk"><input type="checkbox" data-chk="${s.id}:${c.id}" ${(s.checks||{})[c.id]?'checked':''}>${esc(c.label)}<span class="when">${(s.checks||{})[c.id] ? md(s.checks[c.id]) : `期限 ${md(addDays(s.date,-PREOP_DAYS))}`}</span></label>`).join('')}</div>`;
+  },
+  io(p, d){
+    const dates = Object.keys(p.io||{}).sort();
+    const cur = orderUI.ioDate && p.io[orderUI.ioDate] ? orderUI.ioDate : dates[dates.length-1];
+    const i = dates.indexOf(cur);
+    let html = `<div class="card"><h2>I/O ${cur?`<button data-iodate="${dates[i-1]||''}" ${i>0?'':'disabled style="opacity:.2"'}>‹</button><span class="muted">${md(cur)}</span><button data-iodate="${dates[i+1]||''}" ${i<dates.length-1?'':'disabled style="opacity:.2"'}>›</button>`:''}<span class="sp"></span>${cur?`<button data-act="ioedit" data-date="${cur}">編輯</button>`:''}<button data-act="io">輸入</button></h2>`;
+    if(!cur) return html + '<div class="faint small">尚無資料</div></div>';
+    const rows = ioRows(p, cur);
+    const shifts = rows.some(r => [r.d, r.e, r.n].some(has));
+    const v = x => has(x) ? x : '';
+    html += `<table class="io">${shifts ? '<tr><th></th><th>白</th><th>小夜</th><th>大夜</th><th>Total</th></tr>' : ''}
+      ${rows.map(r => `<tr><td>${esc(r.label)}${r.color || r.irrigation ? `<span class="sub">${esc([r.color, r.irrigation ? 'NS irrigation' : ''].filter(Boolean).join(' · '))}</span>` : ''}${r.parts.length ? `<span class="sub">${esc(r.parts.join(' · '))}</span>` : ''}</td>${shifts ? `<td>${v(r.d)}</td><td>${v(r.e)}</td><td>${v(r.n)}</td>` : ''}<td class="t">${v(r.total)}</td></tr>`).join('')}</table></div>`;
+    return html;
+  },
+  labs(p){
+    const labDates = Object.keys(p.labs||{}).sort();
+    const lastDate = labDates[labDates.length-1];
+    let html = `<div class="card"><h2>Lab ${lastDate?`<span class="faint">${md(lastDate)}</span>`:''}<span class="sp"></span>${labDates.length?'<button data-act="labhist">歷史 / 編輯</button>':''}<button data-act="lab">輸入</button></h2>`;
+    if(!labDates.length) return html + '<div class="faint small">尚無資料</div></div>';
+    return html + '<div class="labs">' + LAB_KEYS.map(([k,label,lo,hi]) => {
+      const {cur, prev} = latestLab(p, k);
+      if(!cur) return `<div class="lab" data-labedit="${lastDate}"><div class="k">${label}</div><div class="v old">—</div></div>`;
+      const old = cur.d !== lastDate;
+      return `<div class="lab" data-labedit="${cur.d}"><div class="k">${label}${old?` <span class="faint">${md(cur.d)}</span>`:''}</div>
+        <div class="v ${old?'old':flag(cur.v,lo,hi)}">${fmtNum(cur.v)}${arrow(cur.v, prev&&prev.v)}</div>
+        ${prev&&!old?`<div class="p">${fmtNum(prev.v)}</div>`:''}</div>`;
+    }).join('') + '</div></div>';
+  },
+  orders(p, d){
+    const cats = [['diet','飲食'],['ivf','IVF'],['lab','Lab'],['exam','檢查'],['tube','管路'],['drug','藥物'],['consult','會診'],['dc','出院']];
+    const todos = (p.todos||[]).filter(x => !x.done || x.doneOn === d)
+      .sort((a,b) => (a.done - b.done) || (a.due||'9').localeCompare(b.due||'9'));
+    return `<div class="card" id="orders"><h2>Order</h2>
+      <div class="cats">${cats.map(([k,l]) => `<button data-ocat="${k}" class="${orderUI.cat===k?'on':''}">${l}</button>`).join('')}</div>
+      ${orderUI.cat ? `<div class="panel">${orderPanel(p, d)}</div>` : ''}
+      <form class="addline" data-form="todo"><input name="t" placeholder="其他 order（可用麥克風口述）" autocomplete="off" enterkeyhint="done"><button class="btn sm">加入</button></form>
+      ${todos.length ? `<ul class="todos">${todos.map(x => `<li class="${x.done?'done':''}"><input type="checkbox" data-todo="${x.id}" ${x.done?'checked':''}><span class="t">${esc(x.t)}${x.d!==d&&!x.due?` <span class="faint small">${md(x.d)}</span>`:''}</span><button class="due ${x.due?'':'none'}" data-due="${x.id}">${x.due?`提醒 ${md(x.due)}`:'提醒'}</button><button class="xbtn" data-deltodo="${x.id}">×</button></li>`).join('')}</ul>` : ''}
+    </div>`;
+  },
+  meds(p){
+    if(!(p.meds||[]).length) return '';
+    const diff = p.medDiff || {added:[], changed:[], stopped:[]};
+    const open = S.settings.medsOpen;
+    const changeNote = [diff.added.length?`新增 ${diff.added.length}`:'', diff.changed.length?`改 ${diff.changed.length}`:'', diff.stopped.length?`停 ${diff.stopped.length}`:''].filter(Boolean).join(' · ');
+    let html = `<div class="card"><h2>用藥 ${p.meds.length} 項 ${p.medsDate?`<span class="faint">${md(p.medsDate)}</span>`:''}${changeNote?` · ${changeNote}`:''}<span class="sp"></span><button data-act="meds">${open?'收合':'展開'}</button></h2>`;
+    if(open){
+      html += '<ul class="meds">' + p.meds.map(m => {
+        const k = m.n.toLowerCase();
+        const cls = diff.added.includes(k) ? 'add' : diff.changed.includes(k) ? 'chg' : '';
+        return `<li class="${cls}"><span class="mn">${esc(m.n)}${m.own?'<span class="own">自備</span>':''}</span><span class="mf">${esc(m.d)} ${esc(m.f)}</span></li>`;
+      }).join('') + diff.stopped.map(m => `<li class="stop"><span class="mn">${esc(m.n)}</span><span class="mf">${esc(m.d)} ${esc(m.f)}</span></li>`).join('') + '</ul>';
+    }
+    return html + '</div>';
+  }
+};
+
+// ---------- layered order panel ----------
+function orderPanel(p, d){
+  const st = p.status, u = orderUI;
+  const b = (attrs, label, cls) => `<button class="opt ${cls||''}" ${attrs}>${esc(label)}</button>`;
+  switch(u.cat){
+    case 'diet':
+      return `<div class="chips">${DIETS.map(v => b(`data-o="diet" data-v="${esc(v)}"`, v, st.diet && st.diet.v === v ? 'cur' : '')).join('')}</div>`;
+    case 'ivf': {
+      const curType = (st.ivf && st.ivf.v.match(/^(.*?)\s*\d+$/) || [])[1];
+      const type = u.ivfType || curType || 'NS';
+      return `<div class="lbl">目前：${st.ivf ? esc(st.ivf.v) : '無'}</div>
+        <div class="chips">${IVF_TYPES.map(v => b(`data-ivft="${v}"`, v, v === type ? 'on' : '')).join('')}</div>
+        <div class="lbl">${esc(type)} 速度</div>
+        <div class="chips">${IVF_RATES.map(r => b(`data-o="ivf" data-v="${esc(type)} ${r}"`, String(r), st.ivf && st.ivf.v === `${type} ${r}` ? 'cur' : '')).join('')}</div>
+        <div class="inl"><input data-ivfrate inputmode="numeric" placeholder="其他速度"><button class="btn sm sec" data-o="ivfcustom" data-v="${esc(type)}">加入</button></div>
+        <div class="lbl">其他</div>
+        <div class="chips">${IVF_SPECIAL.map(v => b(`data-o="ivf" data-v="${v}"`, v)).join('')}${b('data-o="ivf" data-v="DC"', 'DC IVF')}</div>`;
+    }
+    case 'lab': {
+      const set = u.labSet || '全套';
+      const dates = [['明早', addDays(today(), 1)], ...[1,2,3,4,5,6,7].map(w => [`W${w}`, nextWeekday(today(), w)])];
+      return `<div class="chips">${LAB_SETS.map(([k]) => b(`data-labset="${k}"`, k, k === set ? 'on' : '')).join('')}</div>
+        <div class="lbl">${esc((LAB_SETS.find(s => s[0] === set) || [])[1] || '')}</div>
+        <div class="chips">${dates.map(([l, due]) => b(`data-o="lab" data-label="${l}" data-due="${due}"`, `${l} ${md(due)}`)).join('')}</div>`;
+    }
+    case 'exam': {
+      const ex = u.exam || 'CT';
+      const img = ex === 'CT' || ex === 'MRI';
+      return `<div class="chips">${[...EXAMS, '其他'].map(v => b(`data-examt="${v}"`, v, v === ex ? 'on' : '')).join('')}</div>
+        ${img ? `<div class="lbl">部位（可複選）</div><div class="chips">${IMG_PARTS.map(([k,l]) => b(`data-part="${k}"`, `${l} (${k})`, (u.parts||[]).includes(k) ? 'on' : '')).join('')}${b('data-contrast', '+Contrast', u.contrast ? 'on' : '')}</div>` : ''}
+        ${ex === '其他' ? `<div class="inl"><input data-examother placeholder="檢查名稱" value="${esc(u.examOther||'')}"></div>` : ''}
+        <div class="lbl">自費／日期（選填）</div>
+        <div class="chips">${b('data-examself', '自費', u.self ? 'on' : '')}</div>
+        <div class="inl"><input type="date" data-examdate value="${esc(u.examDate||'')}"><input data-examtime placeholder="時間 10am" value="${esc(u.examTime||'')}"><button class="btn sm" data-o="exam">加入</button></div>`;
+    }
+    case 'tube': {
+      const cur = st.tubes.map(t => t.name);
+      return `${cur.length ? `<div class="lbl">拔除</div><div class="chips">${cur.map(n => b(`data-o="tubeOut" data-v="${esc(n)}"`, '拔 ' + n)).join('')}</div>` : '<div class="lbl">目前沒有記錄的管路</div>'}
+        <div class="lbl">記錄身上已有的管路（只更新狀態）</div><div class="chips">${TUBES.filter(n => !cur.includes(n)).map(n => b(`data-o="tubeIn" data-v="${esc(n)}"`, n)).join('')}</div>`;
+    }
+    case 'drug': {
+      const meds = (p.meds || []).filter(m => !m.own);
+      return `<div class="inl" style="margin-top:0"><input data-drugname placeholder="新增藥物"><button class="opt ${u.self?'on':''}" data-drugself>自費</button><button class="btn sm" data-o="drugAdd">加入</button></div>
+        ${meds.length ? `<div class="lbl">DC 目前用藥</div><div class="chips">${meds.map(m => b(`data-o="drugDC" data-v="${esc(m.n)}"`, m.n)).join('')}</div>` : ''}`;
+    }
+    case 'consult':
+      return `<div class="chips">${CONSULTS.map(c => b(`data-o="consult" data-v="${c}"`, c)).join('')}</div>
+        <div class="inl"><input data-consultother placeholder="其他科別"><button class="btn sm sec" data-o="consultother">加入</button></div>`;
+    case 'dc': {
+      const base = p.mbd || today();
+      const rtc = suggestRTC(p.attending, base);
+      return `<div class="lbl">MBD${p.mbd?`（目前 ${md(p.mbd)}）`:''}</div>
+        <div class="chips">${[['明天',1],['後天',2]].map(([l,n]) => b(`data-o="mbd" data-v="${addDays(today(),n)}"`, `${l} ${md(addDays(today(),n))}`)).join('')}${b('data-o="mbdpick"', '選日期')}</div>
+        <div class="lbl">RTC${clinicDays(p.attending, base).length ? `（${esc(p.attending)} 門診日）` : ''}</div>
+        <div class="chips">${rtc.map(x => b(`data-o="rtc" data-v="${x}"`, `${md(x)}（${wd(x)}）`)).join('')}${b('data-o="rtcpick"', '選日期')}</div>
+        <div class="lbl">其他</div>
+        <div class="chips">${b('data-o="text" data-v="診斷書"', '診斷書')}${b('data-dcmeds', '出院帶藥…')}${b('data-o="text" data-v="出院準備服務"', '出院準備服務')}</div>`;
+    }
+  }
+  return '';
+}
+// Create an order: update status + add the todo, all undoable.
+function placeOrder(p, kind, data, extra){
+  orderUI.cat = null;   // back to the category row after each order
+  const label = act('order', () => {
+    const t = applyOrder(p, kind, data, selDate);
+    addTodo(p, t, {d:selDate, kind, due:(extra && extra.due) || null});
+    return t;
+  }, {toast:false});
+  toast('已加入：' + label, {label:'復原', fn:() => undoAt(0)});
+}
+
+function detailClick(e, p){
+  const el = e.target.closest('[data-act],[data-ocat],[data-o],[data-ivft],[data-labset],[data-examt],[data-part],[data-contrast],[data-examself],[data-drugself],[data-dcmeds],[data-sex],[data-delexam],[data-chk],[data-iodate],[data-labedit]');
+  if(!el) return;
+  const u = orderUI, ds = el.dataset;
+  const panelVal = sel => { const x = document.querySelector(sel); return x ? x.value.trim() : ''; };
+  const keepPanelInputs = () => { u.examDate = panelVal('[data-examdate]'); u.examTime = panelVal('[data-examtime]'); u.examOther = panelVal('[data-examother]'); };
+  if(ds.act){
+    const a = ds.act;
+    if(a === 'editdx') editPatient(p);
+    if(a === 'paste') pastePatient(p);
+    if(a === 'lab') labForm(p, today());
+    if(a === 'labhist') labHistory(p);
+    if(a === 'io') ioForm(p, today());
+    if(a === 'ioedit') ioForm(p, ds.date);
+    if(a === 'culture') cultureSheet(p);
+    if(a === 'layout') layoutSheet();
+    if(a === 'meds'){ S.settings.medsOpen = !S.settings.medsOpen; save(); render(); }
+    if(a === 'purge' && confirm(`永久刪除 ${p.name || p.mrn} 的所有資料（包含過去住院紀錄）？`)) act(`已刪除 ${p.name || p.mrn}`, () => { delete S.patients[p.mrn]; location.hash = '#/'; });
+    return;
+  }
+  if(ds.ocat){
+    u.cat = u.cat === ds.ocat && el.closest('.cats') ? null : ds.ocat;
+    render();
+    if(!el.closest('.cats')){ const o = document.getElementById('orders'); if(o) o.scrollIntoView({behavior:'smooth', block:'start'}); }
+    return;
+  }
+  if(ds.sex !== undefined){ p.sex = p.sex === ds.sex ? '' : ds.sex; save(); render(); return; }
+  if(ds.delexam){ act('已移除檢查', () => { p.status.exams = p.status.exams.filter(x => x.id !== ds.delexam); }); return; }
+  if(ds.chk){ const [sid, cid] = ds.chk.split(':'); const s = S.surgeries[sid]; if(s){ s.checks = s.checks || {}; s.checks[cid] = el.checked ? today() : null; save(); render(); } return; }
+  if(ds.iodate !== undefined){ if(ds.iodate){ u.ioDate = ds.iodate; render(); } return; }
+  if(ds.labedit){ labForm(p, ds.labedit); return; }
+  if(ds.ivft){ u.ivfType = ds.ivft; render(); return; }
+  if(ds.labset){ u.labSet = ds.labset; render(); return; }
+  if(ds.examt){ keepPanelInputs(); u.exam = ds.examt; u.parts = []; u.contrast = false; render(); return; }
+  if(ds.part){ keepPanelInputs(); u.parts = u.parts || []; u.parts = u.parts.includes(ds.part) ? u.parts.filter(x => x !== ds.part) : [...u.parts, ds.part]; render(); return; }
+  if(el.hasAttribute('data-contrast')){ keepPanelInputs(); u.contrast = !u.contrast; render(); return; }
+  if(el.hasAttribute('data-examself')){ keepPanelInputs(); u.self = !u.self; render(); return; }
+  if(el.hasAttribute('data-drugself')){ const n = panelVal('[data-drugname]'); u.self = !u.self; render(); const x = document.querySelector('[data-drugname]'); if(x) x.value = n; return; }
+  if(el.hasAttribute('data-dcmeds')){ dischargeMedsSheet(p); return; }
+  const o = ds.o; if(!o) return;
+  if(o === 'diet') return placeOrder(p, 'diet', {v:ds.v});
+  if(o === 'ivf') return placeOrder(p, 'ivf', {v:ds.v});
+  if(o === 'ivfcustom'){ const r = panelVal('[data-ivfrate]'); if(r) placeOrder(p, 'ivf', {v:`${ds.v} ${r}`}); return; }
+  if(o === 'lab'){ const set = u.labSet || '全套'; return placeOrder(p, 'lab', {set, label:ds.label, due:ds.due}, {due:ds.due}); }
+  if(o === 'exam'){
+    keepPanelInputs();
+    const ex = u.exam || 'CT';
+    let name = ex === '其他' ? u.examOther : ex;
+    if(!name) return toast('請輸入檢查名稱');
+    if((ex === 'CT' || ex === 'MRI') && (u.parts||[]).length) name += ' ' + u.parts.join('') + (u.contrast ? '+C' : '');
+    else if(u.contrast) name += ' +C';
+    const when = [u.examDate ? md(u.examDate) : '', u.examTime].filter(Boolean).join(' ');
+    const text = [name, u.self ? '自費' : '', when].filter(Boolean).join(' ');
+    Object.assign(u, {parts:[], contrast:false, self:false, examDate:'', examTime:'', examOther:''});
+    return placeOrder(p, 'exam', {text, date:panelVal('[data-examdate]') || null});
+  }
+  if(o === 'tubeOut') return placeOrder(p, o, {name:ds.v});
+  if(o === 'tubeIn'){   // usually recording a tube already in place, so status only, no order
+    u.cat = null;
+    act(`已記錄管路 ${ds.v}`, () => applyOrder(p, 'tubeIn', {name:ds.v}, selDate));
+    return;
+  }
+  if(o === 'drugAdd'){ const n = panelVal('[data-drugname]'); if(!n) return; const self = u.self; u.self = false; return placeOrder(p, 'drugAdd', {name:n, self}); }
+  if(o === 'drugDC') return placeOrder(p, 'drugDC', {name:ds.v});
+  if(o === 'consult') return placeOrder(p, 'consult', {dept:ds.v});
+  if(o === 'consultother'){ const n = panelVal('[data-consultother]'); if(n) placeOrder(p, 'consult', {dept:n}); return; }
+  if(o === 'mbd') return placeOrder(p, 'mbd', {date:ds.v});
+  if(o === 'mbdpick') return pickDate('MBD 日期', addDays(today(), 1), v => placeOrder(p, 'mbd', {date:v}));
+  if(o === 'rtc') return placeOrder(p, 'rtc', {date:ds.v});
+  if(o === 'rtcpick') return pickDate('RTC 日期', addDays(today(), 7), v => placeOrder(p, 'rtc', {date:v}));
+  if(o === 'text') return placeOrder(p, 'text', {text:ds.v});
+}
+
+// ---------- sheets for the patient page ----------
+function editPatient(p){
+  const isNew = !p;
+  const v = p || {};
+  const base = selDate;
+  sheet(`<h3>${isNew ? '新增病人' : '編輯'}<span class="sp"></span><button class="ib" data-close>取消</button></h3>
+    <form data-f>
+      <div class="grid2"><div><label class="f">床號</label><input class="t" name="bed" value="${esc(v.bed)}" placeholder="3F21A"></div><div><label class="f">姓名</label><input class="t" name="name" value="${esc(v.name)}"></div></div>
+      ${isNew ? `<div class="grid2">
+        <div><label class="f">病歷號</label><input class="t" name="mrn" inputmode="numeric"></div>
+        <div><label class="f">${base > today() ? '預計入院日' : '加入清單日期'}</label><input class="t" type="date" name="start" value="${base}"></div></div>` : ''}
+      <label class="f">主治</label><input class="t" name="attending" list="attl" value="${esc(v.attending || S.settings.filter || '')}"><datalist id="attl">${S.attendings.map(a => `<option value="${esc(a)}">`).join('')}</datalist>
+      <label class="f">貼上重點，按「整理」自動分類</label>
+      <textarea class="t" rows="4" data-raw placeholder="Robotic Lt' partial Nx POD 2&#10;70F, Hx: DM, CAD s/p PCI on aspirin"></textarea>
+      <div class="row2" style="margin-top:6px"><button type="button" class="btn sec sm" data-org>整理</button></div>
+      <div class="small muted" data-status style="margin-top:4px"></div>
+      <label class="f">清單顯示（簡短）</label><input class="t" name="short" value="${esc(v.short)}" placeholder="Lt RAPN、Lt APN urosepsis Abx、Bladder UC · GC C3D1">
+      <label class="f">完整主診斷</label><input class="t" name="dx" value="${esc(v.dx)}">
+      <label class="f">手術日：可輸入 POD1、11/5、今天、昨天</label><input class="t" name="op" value="${esc(v.opDate ? md(v.opDate) : '')}" autocomplete="off">
+      <div class="hint" data-ophint></div>
+      <label class="f">Underlying（一行一項，抗凝藥寫在該項裡）</label><textarea class="t" name="hx" rows="3">${esc(v.hx)}</textarea>
+      <div class="grid2">
+        <div><label class="f">iPSA</label><input class="t" name="ipsa" inputmode="decimal" value="${esc(v.ipsa)}"></div>
+        <div><label class="f">PV (mL)</label><input class="t" name="pv" inputmode="decimal" value="${esc(v.pv)}"></div>
+      </div>
+      <label class="f">MRI</label><input class="t" name="mri" value="${esc(v.mri)}">
+      <label class="f">抗凝／抗血小板停藥天數（例如 Aspirin 7；空白＝用常見天數）</label><input class="t" name="anti" value="${esc((v.anti||[]).map(a => a.drug + (a.holdDays ? ' ' + a.holdDays : '')).join(', '))}">
+      <label class="f">備註</label><textarea class="t" name="note" rows="2">${esc(v.note)}</textarea>
+      <div class="row2"><button class="btn">儲存</button></div>
+    </form>`, (el, close) => {
+      const form = el.querySelector('[data-f]'), status = el.querySelector('[data-status]'), hint = el.querySelector('[data-ophint]');
+      let opDate = v.opDate || '';
+      const showOp = () => {
+        const raw = form.op.value.trim();
+        const r = parseOpInput(raw, base);
+        if(!raw){ opDate = ''; hint.textContent = ''; hint.className = 'hint'; return; }
+        if(r === null){ hint.textContent = '看不懂這個日期'; hint.className = 'hint bad'; return; }
+        opDate = r; hint.className = 'hint';
+        hint.textContent = `→ ${md(r)}（${wd(r)}）手術 · ${md(base)} 顯示 ${podLabel(r, base)}`;
+      };
+      form.op.oninput = showOp; if(v.opDate) showOp();
+      const fillInfo = info => {
+        if(info.short || info.dx) form.short.value = info.short || info.dx;
+        if(info.dx) form.dx.value = info.dx;
+        if(info.opDate){ form.op.value = md(info.opDate); showOp(); }
+        if(info.hx) form.hx.value = info.hx.join('\n');
+        for(const k of ['ipsa','pv','mri']) if(info[k]) form[k].value = info[k];
+        if(info.anti && info.anti.length) form.anti.value = info.anti.map(a => a.drug + (a.holdDays ? ' ' + a.holdDays : '')).join(', ');
+        if(info.note) form.note.value = [form.note.value, info.note].filter(Boolean).join('\n');
+        fillInfo.extra = info;
+      };
+      el.querySelector('[data-org]').onclick = async () => {
+        const raw = el.querySelector('[data-raw]').value; if(!raw.trim()) return;
+        status.innerHTML = S.settings.apiKey ? '<span class="spin"></span> Claude 整理中…' : '';
+        const r = await organize([{key:'0', text:raw}]);
+        fillInfo(r.info['0'] || {});
+        status.textContent = r.by === 'claude' ? '已整理，請核對後儲存' : r.err ? `Claude 整理失敗，改用基本規則（${r.err}）` : '已用基本規則整理（設定 API key 後會整理得更完整）';
+      };
+      form.onsubmit = e => {
+        e.preventDefault();
+        const fd = new FormData(form); const g = k => (fd.get(k) || '').trim();
+        if(form.op.value.trim() && parseOpInput(form.op.value, base) === null) return toast('手術日看不懂，請修正');
+        if(isNew && !g('mrn') && !confirm('沒有病歷號：入院時無法自動合併 TeamPro 資料。仍要儲存？')) return;
+        close();
+        act(isNew ? `已新增 ${g('name') || g('mrn')}` : '已儲存', () => {
+          let q = p;
+          if(isNew){
+            const mrn = g('mrn') || 'tmp-' + uid();
+            q = S.patients[mrn] || (S.patients[mrn] = newPatient(mrn));
+            if(q.adm && q.dischargedOn) archiveStay(q);
+            const start = g('start') || base;
+            if(start > today()) Object.assign(q, {planned:true, plannedAdm:start});
+            else Object.assign(q, {planned:false, adm:q.adm || start, dischargedOn:null});
+            linkSurgery(q);
+          }
+          for(const k of ['bed','name','attending','short','dx','hx','ipsa','pv','mri','note']) q[k] = g(k);
+          q.opDate = opDate;
+          q.short = stripHash(q.short || q.dx); q.dx = stripHash(q.dx);
+          const cyc = parseCycle(q.short, base); q.cycle = cyc || null;
+          q.anti = g('anti') ? g('anti').split(/[,，、]/).map(s => s.trim()).filter(Boolean).map(s => { const m = s.match(/^(.*?)\s*(\d+)\s*天?$/); return m ? {drug:m[1], holdDays:+m[2]} : {drug:s, holdDays:null}; }) : [];
+          const extra = fillInfo.extra; if(extra){ if(extra.sex) q.sex = extra.sex; applyInfo(q, {exams:extra.exams, cultures:extra.cultures}); }
+          if(q.attending && !S.attendings.includes(q.attending)) S.attendings.push(q.attending);
+          if(isNew) location.hash = '#/';
+        });
+      };
+    });
+}
+// "貼上" on the patient page: add info to an existing patient.
+function pastePatient(p){
+  let target = 'auto', result = null;
+  sheet(`<h3>貼上補充資料<span class="sp"></span><button class="ib" data-close>取消</button></h3>
+    <div class="chips" data-tg>${[['auto','自動分類'],['dx','主診斷'],['hx','Underlying']].map(([k,l]) => `<button data-t="${k}" class="${k==='auto'?'on':''}">${l}</button>`).join('')}</div>
+    <textarea class="t" rows="6" data-raw style="margin-top:8px" placeholder="貼上或輸入"></textarea>
+    <div class="row2"><button class="btn sec" data-org>整理</button></div>
+    <div data-prev class="small" style="margin-top:8px"></div>
+    <div class="row2"><button class="btn" data-apply disabled>套用</button></div>`, (el, close) => {
+      el.querySelector('[data-tg]').onclick = e => { const b = e.target.closest('[data-t]'); if(!b) return; target = b.dataset.t; el.querySelectorAll('[data-t]').forEach(x => x.classList.toggle('on', x === b)); };
+      const prev = el.querySelector('[data-prev]'), apply = el.querySelector('[data-apply]');
+      el.querySelector('[data-org]').onclick = async () => {
+        const raw = el.querySelector('[data-raw]').value; if(!raw.trim()) return;
+        if(target === 'hx') result = {hx: raw.split('\n').map(s => s.replace(BULLET, '').trim()).filter(Boolean)};
+        else if(target === 'dx') result = parseNotes([raw.split('\n')[0]], selDate);
+        else {
+          prev.innerHTML = S.settings.apiKey ? '<span class="spin"></span> 整理中…' : '';
+          const r = await organize([{key:'0', text:raw}]); result = r.info['0'] || {};
+        }
+        prev.innerHTML = infoSummary(result) || '沒有找到可以分類的內容';
+        apply.disabled = false;
+      };
+      apply.onclick = () => { close(); act('已補充資料', () => mergeInfo(p, result)); };
+    });
+}
+function infoSummary(i){
+  const rows = [];
+  if(i.short || i.dx) rows.push(['主診斷', (i.short && i.dx && i.short !== i.dx ? `${i.short}（${i.dx}）` : i.short || i.dx) + (i.opDate ? ` · 手術 ${md(i.opDate)}` : '')]);
+  if(i.sex) rows.push(['性別', i.sex]);
+  if(i.hx && i.hx.length) rows.push(['Underlying', i.hx.join('；')]);
+  if(i.ipsa || i.pv || i.mri) rows.push(['前列腺', [i.ipsa && 'iPSA ' + i.ipsa, i.pv && 'PV ' + i.pv, i.mri && 'MRI ' + i.mri].filter(Boolean).join(' · ')]);
+  if(i.anti && i.anti.length) rows.push(['抗凝', i.anti.map(a => a.drug + (a.holdDays ? ` 停 ${a.holdDays} 天` : '')).join('、')]);
+  if(i.exams && i.exams.length) rows.push(['檢查', i.exams.map(e => e.text).join('；')]);
+  if(i.cultures && i.cultures.length) rows.push(['Culture', i.cultures.map(c => `${c.site}: ${c.org}`).join('；')]);
+  if(i.note) rows.push(['備註', i.note]);
+  return rows.map(([k,v]) => `<div><span class="muted">${k}</span> ${esc(v)}</div>`).join('');
+}
+function cultureSheet(p){
+  let site = 'U/C';
+  sheet(`<h3>Culture<span class="sp"></span><button class="ib" data-close>關閉</button></h3>
+    ${p.status.cultures.map((c,i) => `<div class="lrow"><span class="grow">${esc(c.site)}: ${esc(c.org)}</span><button class="xbtn" data-del="${i}">×</button></div>`).join('') || '<div class="faint small">尚無</div>'}
+    <div class="chips" style="margin-top:12px" data-sites>${CULTURE_SITES.map(s => `<button data-s="${s}" class="${s===site?'on':''}">${s}</button>`).join('')}</div>
+    <div class="inl"><input data-org placeholder="菌種，例如 E. coli（ESBL）"><button class="btn sm" data-add>加入</button></div>`, (el, close) => {
+      el.querySelector('[data-sites]').onclick = e => { const b = e.target.closest('[data-s]'); if(!b) return; site = b.dataset.s; el.querySelectorAll('[data-s]').forEach(x => x.classList.toggle('on', x === b)); };
+      el.querySelector('[data-add]').onclick = () => { const org = el.querySelector('[data-org]').value.trim(); if(!org) return; close(); act('已加入 culture', () => p.status.cultures.push({site, org})); };
+      el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { close(); act('已刪除 culture', () => p.status.cultures.splice(+b.dataset.del, 1)); });
+    });
+}
+function dischargeMedsSheet(p){
+  const meds = dischargeMeds(p);
+  sheet(`<h3>出院帶藥<span class="sp"></span><button class="ib" data-close>取消</button></h3>
+    <div class="small muted">目前用藥（已排除自備藥），勾選要帶回家的</div>
+    ${meds.map((m,i) => `<label class="chk"><input type="checkbox" data-i="${i}" ${m.abx || /PRN|ONCE|STAT/.test(m.f) ? '' : 'checked'}>${esc(m.n)}<span class="when">${esc(m.d)} ${esc(m.f)}</span></label>`).join('') || '<div class="faint small">沒有可帶的藥</div>'}
+    <div class="row2"><button class="btn" data-ok>加入 order</button></div>`, (el, close) => {
+      el.querySelector('[data-ok]').onclick = () => {
+        const pick = [...el.querySelectorAll('[data-i]:checked')].map(x => meds[+x.dataset.i]);
+        close();
+        placeOrder(p, 'text', {text:'出院帶藥：' + (pick.map(m => `${m.n} ${m.d} ${m.f}`).join('、') || '無')});
+      };
+    });
+}
+function layoutSheet(){
+  const draw = el => {
+    const L = S.settings.layout, H = S.settings.hidden || [];
+    el.querySelector('[data-list]').innerHTML = L.map((id,i) => `<div class="lrow"><span class="grow ${H.includes(id)?'faint':''}">${esc((CARDS.find(c => c[0] === id) || [])[1] || id)}</span>
+      <button class="ib" data-up="${i}" ${i?'':'disabled'}>${ICON.up}</button><button class="ib" data-dn="${i}" ${i<L.length-1?'':'disabled'}>${ICON.down}</button>
+      <button class="opt ${H.includes(id)?'':'on'}" data-hide="${id}">${H.includes(id)?'隱藏':'顯示'}</button></div>`).join('');
+  };
+  sheet(`<h3>編輯版面<span class="sp"></span><button class="ib" data-close>完成</button></h3><div class="small muted">所有病人共用同一套排版</div><div data-list style="margin-top:8px"></div>`, (el, close) => {
+    draw(el);
+    el.querySelector('[data-list]').onclick = e => {
+      const L = S.settings.layout; const b = e.target.closest('button'); if(!b) return;
+      if(b.dataset.up){ const i = +b.dataset.up; [L[i-1], L[i]] = [L[i], L[i-1]]; }
+      if(b.dataset.dn){ const i = +b.dataset.dn; [L[i+1], L[i]] = [L[i], L[i+1]]; }
+      if(b.dataset.hide){ const H = S.settings.hidden = S.settings.hidden || []; const k = b.dataset.hide; S.settings.hidden = H.includes(k) ? H.filter(x => x !== k) : [...H, k]; }
+      save(); draw(el); render();
+    };
+  });
+}
+
+function labForm(p, date){
+  const existing = (p.labs || {})[date] || {};
+  let extra = [];
+  sheet(`<h3>${Object.keys(existing).length ? '編輯' : '輸入'} Lab<span class="sp"></span><button class="ib" data-close>取消</button></h3>
+    <div class="row2" style="margin-top:4px">
+      <label class="btn sec" style="text-align:center">拍照 / 選照片<input type="file" accept="image/*" multiple hidden data-photo></label>
+      <button class="btn sec" data-pastebtn>貼上文字</button>
+    </div>
+    <div data-pastebox hidden><textarea class="t" rows="5" data-pastetext placeholder="貼上 HIS 檢驗報告複製出來的文字"></textarea><div class="row2"><button class="btn sec" data-parse>用 Claude 判讀</button></div></div>
+    <div class="small muted" data-status style="margin:8px 0"></div>
+    <form data-f>
+      <label class="f">檢驗日期</label><input class="t" type="date" name="date" value="${date}">
+      <div class="labform" style="margin-top:10px">${LAB_KEYS.map(([k,l]) => `<label><span>${l}</span><input name="${k}" inputmode="decimal" enterkeyhint="next" value="${has(existing[k])?esc(existing[k]):''}"></label>`).join('')}</div>
+      <div class="row2">${Object.keys(existing).length ? '<button type="button" class="btn sec" data-del style="color:var(--red)">刪除這天</button>' : ''}<button class="btn">儲存</button></div>
+    </form>`, (el, close) => {
+      const form = el.querySelector('[data-f]'), status = el.querySelector('[data-status]');
+      const fill = res => {
+        const rs = (res.results||[]).filter(r => r.date).sort((a,b) => a.date.localeCompare(b.date));
+        if(!rs.length){ status.textContent = '沒有找到檢驗數值'; return; }
+        const last = rs[rs.length-1]; extra = rs.slice(0,-1);
+        form.date.value = last.date;
+        for(const [k] of LAB_KEYS) form[k].value = has(last[k]) ? last[k] : '';
+        status.innerHTML = `已填入 ${md(last.date)} 的數值，請核對後儲存` + (extra.length ? `<br>另有 ${extra.map(r=>md(r.date)).join('、')} 的數值，儲存時一併存入` : '');
+      };
+      const run = async (files, text) => {
+        status.innerHTML = '<span class="spin"></span> Claude 判讀中…';
+        try{ fill(await askClaude(await buildContent(files, text, '請擷取檢驗數值。'), LAB_SCHEMA, LAB_SYSTEM)); }
+        catch(err){ status.textContent = '判讀失敗：' + err.message; }
+      };
+      el.querySelector('[data-photo]').onchange = e => { const fs = [...e.target.files]; if(fs.length) run(fs, ''); };
+      el.querySelector('[data-pastebtn]').onclick = () => { el.querySelector('[data-pastebox]').hidden = false; el.querySelector('[data-pastetext]').focus(); };
+      el.querySelector('[data-parse]').onclick = () => { const tx = el.querySelector('[data-pastetext]').value.trim(); if(tx) run([], tx); };
+      const del = el.querySelector('[data-del]');
+      if(del) del.onclick = () => { close(); act(`已刪除 ${md(date)} 的 Lab`, () => { delete p.labs[date]; }); };
+      form.onsubmit = e => {
+        e.preventDefault();
+        const d2 = form.date.value || date;
+        const rec = {};
+        for(const [k] of LAB_KEYS){ const v = form[k].value.trim(); if(v !== '' && !isNaN(+v)) rec[k] = +v; }
+        close();
+        act(`已儲存 ${md(d2)} Lab`, () => {
+          for(const r of extra){ const o = {}; for(const [k] of LAB_KEYS) if(has(r[k])) o[k] = +r[k]; if(Object.keys(o).length) p.labs[r.date] = {...(p.labs[r.date]||{}), ...o}; }
+          if(d2 !== date && p.labs[date] && Object.keys(existing).length) delete p.labs[date];
+          if(Object.keys(rec).length){ p.labs[d2] = rec; markLabsDone(p, d2); } else delete p.labs[d2];
+        });
+      };
+    });
+}
+function labHistory(p){
+  const dates = Object.keys(p.labs).sort().reverse();
+  sheet(`<h3>Lab 歷史<span class="sp"></span><button class="ib" data-close>關閉</button></h3>
+    <div class="small muted">點日期可以編輯或刪除那一天</div>
+    <div class="histwrap"><table class="hist"><tr><th></th>${dates.map(d => `<th data-d="${d}">${md(d)}</th>`).join('')}</tr>
+    ${LAB_KEYS.map(([k,l,lo,hi]) => `<tr><td>${l}</td>${dates.map(d => { const v = p.labs[d][k]; return `<td class="${has(v)?flag(+v,lo,hi):''}">${has(v)?fmtNum(+v):''}</td>`; }).join('')}</tr>`).join('')}
+    </table></div>`, (el, close) => {
+      el.querySelectorAll('[data-d]').forEach(th => th.onclick = () => { close(); labForm(p, th.dataset.d); });
+    });
+}
+function ioForm(p, date){
+  const dates = Object.keys(p.io||{}).sort(); const last = dates[dates.length-1];
+  const tubeRows = (p.status.tubes || []).map(t => ({name:t.name, cat:/Foley|PCN|Cystostomy/.test(t.name) ? 'urine' : /VB|JP/.test(t.name) ? 'vb' : 'other'}));
+  const base = p.io[date] ? p.io[date].items.map(x => ({...x}))
+    : last ? p.io[last].items.map(i => ({name:i.name, cat:i.cat, color:i.color, irrigation:i.irrigation}))
+    : [{name:'飲食', cat:'intake'}, {name:'藥物(含水)', cat:'intake'}, ...(tubeRows.some(t => t.cat === 'urine') ? [] : [{name:'Urine', cat:'urine'}]), ...tubeRows];
+  let shifts = base.some(it => ['d','e','n'].some(k => has(it[k]))) || !!S.settings.ioShifts;
+  const CATL = {intake:'Intake', urine:'Urine', vb:'VB', other:'其他'};
+  const rowHtml = it => {
+    const cat = it.cat || guessCat(it.name);
+    const colors = cat === 'vb' ? VB_COLORS : (cat === 'urine' && /foley|尿管/i.test(it.name)) ? FOLEY_COLORS : null;
+    return `<div class="iorow" data-cat="${cat}" data-color="${esc(it.color||'')}" data-irr="${it.irrigation?1:''}">
+      <div class="l1"><span class="cat">${CATL[cat]}</span><input class="n" value="${esc(it.name)}" placeholder="項目">
+      ${shifts ? ['d','e','n'].map(k => `<input class="v s" data-k="${k}" inputmode="decimal" value="${has(it[k])?esc(it[k]):''}">`).join('') + `<span class="tot">${has(ioTotal(it)) ? ioTotal(it) : ''}</span>`
+        : `<input class="v" data-k="total" inputmode="decimal" value="${has(it.total)?esc(it.total):''}" placeholder="cc">`}
+      <button type="button" class="xbtn" data-rm>×</button></div>
+      ${colors ? `<div class="colors">${colors.map(c => `<button type="button" data-c="${c}" class="${it.color===c?'on':''}">${c}</button>`).join('')}${cat === 'urine' ? `<button type="button" data-irrb class="${it.irrigation?'on':''}">NS irrigation</button>` : ''}</div>` : ''}
+    </div>`;
+  };
+  const readRows = el => [...el.querySelectorAll('.iorow')].map(r => {
+    const it = {name:r.querySelector('input.n').value.trim(), cat:r.dataset.cat, color:r.dataset.color || '', irrigation:!!r.dataset.irr};
+    r.querySelectorAll('input.v').forEach(i => { if(i.value.trim() !== '' && !isNaN(+i.value)) it[i.dataset.k] = +i.value; });
+    return it;
+  }).filter(it => it.name);
+  sheet(`<h3>I/O<span class="sp"></span><button class="ib" data-close>取消</button></h3>
+    <div class="grid2"><div><label class="f">日期</label><input class="t" type="date" data-iod value="${date}"></div>
+      <div><label class="f">記錄方式</label><div class="chips"><button type="button" data-mode="0" class="${shifts?'':'on'}">只記 Total</button><button type="button" data-mode="1" class="${shifts?'on':''}">三班</button></div></div></div>
+    <div class="row2"><label class="btn sec" style="text-align:center">拍照 / 選照片<input type="file" accept="image/*" multiple hidden data-photo></label></div>
+    <div class="small muted" data-status style="margin:8px 0"></div>
+    <div data-headrow>${shifts ? '<div class="iohead"><span style="flex:1.4"></span><span>白</span><span>小夜</span><span>大夜</span><span style="flex:none;width:46px">Total</span><span style="width:24px;flex:none"></span></div>' : ''}</div>
+    <div data-rows>${base.map(rowHtml).join('')}</div>
+    <div class="chips" style="margin-top:8px">${[['intake','＋ Intake'],['urine','＋ Urine'],['vb','＋ VB'],['other','＋ 其他']].map(([c,l]) => `<button type="button" data-addcat="${c}">${l}</button>`).join('')}</div>
+    <div class="row2">${p.io[date] ? '<button class="btn sec" data-del style="color:var(--red)">刪除這天</button>' : ''}<button class="btn" data-save>儲存</button></div>`, (el, close) => {
+      const rows = el.querySelector('[data-rows]'), status = el.querySelector('[data-status]');
+      const redraw = items => {
+        rows.innerHTML = items.map(rowHtml).join('');
+        el.querySelector('[data-headrow]').innerHTML = shifts ? '<div class="iohead"><span style="flex:1.4"></span><span>白</span><span>小夜</span><span>大夜</span><span style="flex:none;width:46px">Total</span><span style="width:24px;flex:none"></span></div>' : '';
+      };
+      el.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
+        shifts = b.dataset.mode === '1'; S.settings.ioShifts = shifts; save();
+        const items = readRows(el).map(it => shifts ? it : {...it, total: has(it.total) ? it.total : ioTotal(it)});
+        el.querySelectorAll('[data-mode]').forEach(x => x.classList.toggle('on', x === b)); redraw(items);
+      });
+      rows.addEventListener('input', e => {
+        const r = e.target.closest('.iorow'); if(!r) return;
+        if(e.target.matches('input.n')){ const c = guessCat(e.target.value); if(c !== 'other') r.dataset.cat = c; }
+        const tot = r.querySelector('.tot');
+        if(tot){ let s = 0, any = false; r.querySelectorAll('input.s').forEach(i => { if(i.value.trim() !== ''){ any = true; s += +i.value || 0; } }); tot.textContent = any ? s : ''; }
+      });
+      rows.onclick = e => {
+        const r = e.target.closest('.iorow'); if(!r) return;
+        if(e.target.matches('[data-rm]')) r.remove();
+        if(e.target.dataset.c){ const on = r.dataset.color === e.target.dataset.c; r.dataset.color = on ? '' : e.target.dataset.c; r.querySelectorAll('[data-c]').forEach(b => b.classList.toggle('on', !on && b === e.target)); }
+        if(e.target.hasAttribute('data-irrb')){ r.dataset.irr = r.dataset.irr ? '' : '1'; e.target.classList.toggle('on', !!r.dataset.irr); }
+      };
+      el.querySelectorAll('[data-addcat]').forEach(b => b.onclick = () => {
+        const c = b.dataset.addcat; const name = c === 'vb' ? (readRows(el).some(i => i.name === 'VB(L)') ? 'VB(R)' : 'VB(L)') : c === 'urine' ? 'Foley' : '';
+        rows.insertAdjacentHTML('beforeend', rowHtml({name, cat:c})); const n = rows.lastElementChild.querySelector('input.n'); if(!name) n.focus();
+      });
+      el.querySelector('[data-photo]').onchange = async e => {
+        const fs = [...e.target.files]; if(!fs.length) return;
+        status.innerHTML = '<span class="spin"></span> Claude 判讀中…';
+        try{
+          const res = await askClaude(await buildContent(fs, '', '請擷取 I/O。'), IO_SCHEMA, IO_SYSTEM);
+          if(!res.items.length){ status.textContent = '沒有找到 I/O 數值'; return; }
+          const prevColors = Object.fromEntries(readRows(el).map(i => [i.name, i]));
+          if(res.items.some(i => [i.d, i.e, i.n].some(has))){ shifts = true; el.querySelectorAll('[data-mode]').forEach(x => x.classList.toggle('on', x.dataset.mode === '1')); }
+          redraw(res.items.map(i => ({name:i.name, cat:i.category, d:i.d, e:i.e, n:i.n, total:i.total, color:(prevColors[i.name]||{}).color, irrigation:(prevColors[i.name]||{}).irrigation})));
+          if(res.date) el.querySelector('[data-iod]').value = res.date;
+          status.textContent = `已填入${res.date ? ` ${md(res.date)} 的` : ''}數值，顏色請手動點選，核對後儲存`;
+        }catch(err){ status.textContent = '判讀失敗：' + err.message; }
+      };
+      const del = el.querySelector('[data-del]');
+      if(del) del.onclick = () => { close(); act(`已刪除 ${md(date)} 的 I/O`, () => { delete p.io[date]; }); };
+      el.querySelector('[data-save]').onclick = () => {
+        const d2 = el.querySelector('[data-iod]').value || date;
+        const items = readRows(el).map(it => { if(!shifts) delete it.d, delete it.e, delete it.n; else delete it.total; return it; });
+        close();
+        act(`已儲存 ${md(d2)} I/O`, () => {
+          if(d2 !== date) delete p.io[date];
+          if(items.some(i => ioTotal(i) != null)) p.io[d2] = {items}; else delete p.io[d2];
+          orderUI.ioDate = d2;
+        });
+      };
+    });
+}
+
+// ================= surgery tab =================
+function viewOR(){
+  const att = S.settings.orFilter || '';
+  const atts = attendingsForMonth(orMonth);
+  const [y, m] = orMonth.split('-').map(Number);
+  const first = new Date(y, m-1, 1), startOff = first.getDay();
+  const start = new Date(y, m-1, 1 - startOff);
+  const tmr = addDays(today(), 1);
+  let html = `<div class="top"><h1>手術</h1><button class="ib" data-orpaste>貼上</button><button class="ib" data-oradd aria-label="新增手術">${ICON.plus}</button></div>`;
+  if(atts.length) html += `<div class="seg">${['', ...atts].map(a => `<button data-orf="${esc(a)}" class="${a===att?'on':''}">${a?esc(a):'全部'}</button>`).join('')}</div>`;
+  html += `<div class="mhead"><button class="ib" data-mon="-1">${ICON.back}</button><b>${y} 年 ${m} 月</b><button class="ib" data-mon="1">${ICON.fwd}</button></div><div class="mgrid">${[...WD].map(w => `<div class="wh">${w}</div>`).join('')}`;
+  for(let i = 0; i < 42; i++){
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const k = ymd(d);
+    if(i >= 35 && d.getMonth() !== m-1) break;
+    const list = surgeriesOn(k, att);
+    const worst = list.length ? (list.some(s => surgState(s).color === 'late') ? 'late' : list.some(s => surgState(s).color === 'pend') ? 'pend' : 'ok') : '';
+    html += `<button class="mcell ${d.getMonth()!==m-1?'out':''} ${k===today()?'today':''} ${k===orSel?'sel':''}" data-ord="${k}"><span class="n">${d.getDate()}</span>${list.length ? `<span class="c"><span class="dot ${worst}"></span>${list.length}</span>` : '<span class="c">&nbsp;</span>'}</button>`;
+  }
+  html += '</div><div class="wrap">';
+  const tl = surgeriesOn(tmr, att);
+  if(orSel !== tmr && tl.length){
+    const pend = tl.filter(s => !surgState(s).complete).length;
+    html += `<div class="remind" data-ord="${tmr}" style="cursor:pointer"><div class="h">明天 ${md(tmr)}（${wd(tmr)}）<span class="sp"></span>${tl.length} 台${pend ? ` · <span style="color:var(--amber)">${pend} 未完成</span>` : ' · 全部完成'}</div></div>`;
+  }
+  const list = surgeriesOn(orSel, att);
+  html += `<div class="group">${md(orSel)}（${wd(orSel)}）${list.length ? ` · ${list.length} 台` : ''}</div>`;
+  html += list.length ? `<div class="list">${list.map(s => { const st = surgState(s); return `<div class="surg" data-surg="${s.id}">
+      <span class="room">${s.room ? 'OR' + esc(s.room) : '—'}</span>
+      <div class="mid"><div class="p">${esc(s.proc)}${s.outpatient ? ' <span class="mk">門診</span>' : ''}${s.anti ? ` <span class="mk" style="color:var(--red);border-color:var(--red)">${esc(s.anti)}</span>` : ''}</div>
+        <div class="s">${esc(s.name || '')} #${esc(s.mrn || '—')}${!att && s.attending ? ' · ' + esc(s.attending) : ''}</div></div>
+      <span class="prog ${st.color}">${st.done}/${st.total}</span></div>`; }).join('')}</div>`
+    : '<div class="empty-state">這天沒有手術<br><br><span data-oradd style="color:var(--accent);cursor:pointer">新增手術</span></div>';
+  html += '</div>';
+  $('#app').innerHTML = html;
+}
+function surgeryForm(s){
+  const isNew = !s;
+  const v = s ? {...s, checks:{...(s.checks||{})}} : {mrn:'', name:'', date:orSel, attending:S.settings.orFilter || attendingsForMonth(orMonth)[0] || '', proc:'', room:'', outpatient:false, anti:null, checks:{}, note:''};
+  const procs = S.settings.procedures, rooms = S.settings.rooms, robot = S.settings.robotRooms;
+  const antiOpts = ['無', ...ANTI.map(a => a[0])];
+  sheet(`<h3>${isNew ? '新增手術' : '手術'}<span class="sp"></span><button class="ib" data-close>取消</button></h3>
+    <div class="grid2"><div><label class="f">病歷號</label><input class="t" data-k="mrn" inputmode="numeric" value="${esc(v.mrn)}"></div><div><label class="f">姓名</label><input class="t" data-k="name" value="${esc(v.name)}"></div></div>
+    <div class="hint" data-known></div>
+    <label class="f">術式</label><div class="chips" data-g="proc">${procs.map(p => `<button data-v="${esc(p)}" class="${p===v.proc?'on':''}">${esc(p)}</button>`).join('')}</div>
+    <div class="inl"><input data-k="procOther" placeholder="其他術式（會記住）" value="${procs.includes(v.proc) ? '' : esc(v.proc)}"></div>
+    <div class="grid2"><div><label class="f">日期</label><input class="t" type="date" data-k="date" value="${v.date}"></div>
+      <div><label class="f">主治</label><input class="t" data-k="attending" list="attl2" value="${esc(v.attending)}"><datalist id="attl2">${attendingsForMonth(orMonth).map(a => `<option value="${esc(a)}">`).join('')}</datalist></div></div>
+    <label class="f">開刀房（● 可排達文西）</label><div class="chips" data-g="room">${rooms.map(r => `<button data-v="${esc(r)}" class="${r===v.room?'on':''}">${robot.includes(r)?'● ':''}${esc(r)}</button>`).join('')}</div>
+    <div class="warnbox" data-robotwarn></div>
+    <label class="f">住院／門診</label><div class="chips" data-g="op"><button data-v="0" class="${v.outpatient?'':'on'}">住院手術</button><button data-v="1" class="${v.outpatient?'on':''}">門診手術</button></div>
+    <label class="f">抗凝血劑</label><div class="chips" data-g="anti">${antiOpts.map(a => `<button data-v="${a}" class="${(v.anti||'無')===a?'on':''}">${a}</button>`).join('')}</div>
+    <div class="hint" data-antihint></div>
+    <label class="f">術前準備（期限 OP 前 ${PREOP_DAYS} 天）</label><div data-checks></div>
+    <label class="f">備註</label><input class="t" data-k="note" value="${esc(v.note)}">
+    <div class="row2">${isNew ? '' : '<button class="btn sec" data-del style="color:var(--red)">刪除</button>'}<button class="btn" data-save>儲存</button></div>`, (el, close) => {
+      const val = k => el.querySelector(`[data-k="${k}"]`).value.trim();
+      const proc = () => val('procOther') || v.proc;
+      const refresh = () => {
+        const r = el.querySelector('[data-robotwarn]');
+        r.textContent = isRobot(proc()) && v.room && !robot.includes(v.room) ? `OR${v.room} 不能排達文西` : '';
+        const ah = el.querySelector('[data-antihint]'); const date = val('date');
+        const days = v.anti && (ANTI.find(a => a[0] === v.anti) || [])[2];
+        ah.textContent = days && date ? `最後一劑 ${md(addDays(date, -days))}（${wd(addDays(date, -days))}），術前停 ${days} 天（參考）` : '';
+        const tmp = {...v, date:date || v.date};
+        el.querySelector('[data-checks]').innerHTML = surgItems(tmp).map(c => `<label class="chk"><input type="checkbox" data-c="${c.id}" ${v.checks[c.id]?'checked':''}>${esc(c.label)}<span class="when">${v.checks[c.id] ? md(v.checks[c.id]) : (date ? `期限 ${md(addDays(date,-PREOP_DAYS))}` : '')}</span></label>`).join('');
+      };
+      refresh();
+      el.querySelector('[data-k="mrn"]').oninput = e => {
+        const mrn = e.target.value.trim();
+        const known = S.patients[mrn] || Object.values(S.surgeries).find(x => x.mrn === mrn);
+        const nm = el.querySelector('[data-k="name"]');
+        el.querySelector('[data-known]').textContent = known ? `已知病人：${known.name || ''}${known.short ? ' · ' + known.short : ''}` : '';
+        if(known && known.name && !nm.value) nm.value = known.name;
+      };
+      el.querySelector('[data-k="date"]').onchange = refresh;
+      el.querySelector('[data-k="procOther"]').oninput = () => { el.querySelectorAll('[data-g="proc"] button').forEach(b => b.classList.remove('on')); refresh(); };
+      el.addEventListener('click', e => {
+        const b = e.target.closest('[data-g] button'); if(!b) return;
+        const g = b.parentElement.dataset.g;
+        if(g === 'proc'){ v.proc = b.dataset.v; el.querySelector('[data-k="procOther"]').value = ''; }
+        if(g === 'room') v.room = v.room === b.dataset.v ? '' : b.dataset.v;
+        if(g === 'op') v.outpatient = b.dataset.v === '1';
+        if(g === 'anti') v.anti = b.dataset.v === '無' ? null : b.dataset.v;
+        b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', g === 'room' ? x.dataset.v === v.room : x === b));
+        refresh();
+      });
+      el.querySelector('[data-checks]').addEventListener('change', e => { const c = e.target.dataset.c; if(c) v.checks[c] = e.target.checked ? today() : null; refresh(); });
+      const del = el.querySelector('[data-del]');
+      if(del) del.onclick = () => { close(); act(`已刪除 ${s.name || s.mrn} 的手術`, () => { delete S.surgeries[s.id]; for(const p of Object.values(S.patients)) if(p.surgId === s.id) p.surgId = null; }); };
+      el.querySelector('[data-save]').onclick = () => {
+        const p = proc(); const date = val('date');
+        if(!val('mrn') && !val('name')) return toast('請輸入病歷號或姓名');
+        if(!p) return toast('請選擇術式');
+        if(!date) return toast('請選日期');
+        close();
+        act(isNew ? `已新增 ${val('name') || val('mrn')} ${p}` : '已儲存手術', () => {
+          const rec = s ? S.surgeries[s.id] : {id:uid(), checks:{}};
+          Object.assign(rec, {mrn:val('mrn'), name:val('name'), proc:p, attending:val('attending').toUpperCase(), room:v.room, outpatient:v.outpatient, anti:v.anti, checks:v.checks, note:val('note')});
+          S.surgeries[rec.id] = rec;
+          setSurgeryDate(rec, date);
+          if(!S.settings.procedures.includes(p)) S.settings.procedures.push(p);
+          if(rec.attending && !S.attendings.includes(rec.attending)) S.attendings.push(rec.attending);
+          const pt = S.patients[rec.mrn]; if(pt && (admittedNow(pt) || isPending(pt))) linkSurgery(pt);
+          orSel = date; orMonth = date.slice(0,7);
+        });
+      };
+    });
+}
+function orPasteSheet(){
+  let parsed = [];
+  sheet(`<h3>貼上手術排程<span class="sp"></span><button class="ib" data-close>取消</button></h3>
+    <div class="small muted">一台一行；主治代號單獨一行。日期、房號、病歷號、姓名、術式順序不拘，可加「門診」「aspirin」。</div>
+    <textarea class="t" rows="8" data-raw style="margin-top:8px;font:13px/1.4 ui-monospace,Menlo,monospace" placeholder="MA5678&#10;11/4 OR10 6012345 陳ＯＯ RARP aspirin&#10;11/4 OR10 6098765 林ＯＯ TURBT 門診"></textarea>
+    <div class="row2"><button class="btn sec" data-parse>解析</button></div>
+    <div data-prev class="small" style="margin-top:8px"></div>
+    <div class="row2"><button class="btn" data-ok disabled>加入</button></div>`, (el, close) => {
+      el.querySelector('[data-parse]').onclick = () => {
+        parsed = parseORPaste(el.querySelector('[data-raw]').value, today());
+        const dup = s => Object.values(S.surgeries).some(x => !x.cancelled && x.date === s.date && ((s.mrn && x.mrn === s.mrn) || (!s.mrn && x.name === s.name)));
+        parsed = parsed.filter(s => !dup(s));
+        el.querySelector('[data-prev]').innerHTML = parsed.length ? parsed.map(s => `<div>${md(s.date)} ${s.room ? 'OR' + esc(s.room) : ''} ${esc(s.name)} #${esc(s.mrn || '—')} <b>${esc(s.proc || '（無術式）')}</b>${s.outpatient ? ' 門診' : ''}${s.anti ? ' ' + esc(s.anti) : ''} <span class="muted">${esc(s.attending)}</span>${isRobot(s.proc) && s.room && !S.settings.robotRooms.includes(s.room) ? ' <span style="color:var(--red)">此房不能排達文西</span>' : ''}</div>`).join('') : '沒有新的手術（已存在的會略過）';
+        el.querySelector('[data-ok]').disabled = !parsed.length;
+      };
+      el.querySelector('[data-ok]').onclick = () => {
+        close();
+        act(`已加入 ${parsed.length} 台手術`, () => {
+          for(const s of parsed){
+            if(!s.attending) s.attending = S.settings.orFilter || '';
+            S.surgeries[s.id] = s;
+            if(s.proc && !S.settings.procedures.includes(s.proc)) S.settings.procedures.push(s.proc);
+            if(s.attending && !S.attendings.includes(s.attending)) S.attendings.push(s.attending);
+            const pt = S.patients[s.mrn]; if(pt && (admittedNow(pt) || isPending(pt))) linkSurgery(pt);
+          }
+          if(parsed[0]){ orSel = parsed[0].date; orMonth = orSel.slice(0,7); }
+        });
+      };
+    });
+}
+
+// ================= month setup =================
+function maybeAskMonth(){
+  const m = today().slice(0,7);
+  if(monthAsked || S.months[m] || !Object.keys(S.patients).length && !S.attendings.length) return;
+  monthAsked = true;
+  monthSetup(m);
+}
+function monthSetup(m){
+  const prev = S.months[m] || Object.values(S.months).slice(-1)[0];
+  let rows = prev ? prev.attendings.map(a => ({code:a.code, days:[...a.days]})) : S.attendings.slice(0, 2).map(code => ({code, days:[]}));
+  if(!rows.length) rows = [{code:'', days:[]}];
+  const draw = el => {
+    el.querySelector('[data-rows]').innerHTML = rows.map((r,i) => `<div class="lrow" style="flex-wrap:wrap"><input class="t" style="width:110px" data-code="${i}" value="${esc(r.code)}" placeholder="MA5678">
+      <div class="wdsel">${[1,2,3,4,5,6,0].map(w => `<button data-w="${i}:${w}" class="${r.days.includes(w)?'on':''}">${WD[w]}</button>`).join('')}</div><button class="xbtn" data-rm="${i}">×</button></div>`).join('');
+  };
+  sheet(`<h3>${+m.slice(5)} 月的主治<span class="sp"></span><button class="ib" data-close>稍後</button></h3>
+    <div class="small muted">這個月跟哪些主治？點選他們的門診日，出院時會自動建議 RTC 日期。</div>
+    <div data-rows style="margin-top:8px"></div>
+    <div class="row2"><button class="btn sec sm" data-addrow>＋ 主治</button></div>
+    <div class="row2"><button class="btn" data-ok>儲存</button></div>`, (el, close) => {
+      draw(el);
+      el.addEventListener('input', e => { if(e.target.dataset.code !== undefined) rows[+e.target.dataset.code].code = e.target.value.trim().toUpperCase(); });
+      el.addEventListener('click', e => {
+        const b = e.target.closest('button'); if(!b) return;
+        if(b.dataset.w){ const [i, w] = b.dataset.w.split(':').map(Number); const ds = rows[i].days; rows[i].days = ds.includes(w) ? ds.filter(x => x !== w) : [...ds, w]; draw(el); }
+        if(b.dataset.rm){ rows.splice(+b.dataset.rm, 1); draw(el); }
+        if(b.hasAttribute('data-addrow')){ rows.push({code:'', days:[]}); draw(el); }
+      });
+      el.querySelector('[data-ok]').onclick = () => {
+        const list = rows.filter(r => r.code);
+        close();
+        act(`已設定 ${+m.slice(5)} 月主治`, () => {
+          S.months[m] = {attendings:list};
+          S.attendings = [...list.map(r => r.code), ...S.attendings.filter(a => !list.some(r => r.code === a))];
+        });
+      };
+    });
+}
+
+// ================= import =================
+let pendingImport = null;
+function viewImport(){
+  const mode = S.settings.importMode || 'teampro';
+  $('#app').innerHTML = `<div class="top"><h1>匯入</h1></div>
+    <div class="seg"><button data-imode="teampro" class="${mode==='teampro'?'on':''}">TeamPro 匯入</button><button data-imode="supp" class="${mode==='supp'?'on':''}">補充資料</button></div>
+    <div class="wrap">${mode === 'teampro' ? `
+    <label class="f">貼上 TeamPro 傳來的文字。每位主治前放一行代號（例如 MA1234）；每一段都視為該主治的<b>完整名單</b>。</label>
+    <textarea class="paste" id="paste" placeholder="MA1234&#10;病歷號:6012345 姓名:… 年齡:60   S99Z9999A 入院日期:2026/11/03&#10;Lt RAPN POD2&#10;F, Hx: DM, CAD s/p PCI on aspirin&#10;Repaglinide 1mg/tab   1PC TID&#10;…"></textarea>
+    <div class="row2"><button class="btn sec" id="clip">從剪貼簿貼上</button><button class="btn" id="parse">解析</button></div>
+    <div id="preview"></div>
+    <details class="card small" style="margin-top:14px"><summary class="muted">傳給 App 前怎麼整理 TeamPro 文字</summary>
+      <div style="margin-top:8px;line-height:1.7">
+      <b>每位病人只在第一次出現那天整理一次</b>，之後 POD、Abx 天數、C#D# 都自動算。<br>
+      在病人那一行和第一個藥之間打 1–3 行：<br>
+      第 1 行 主診斷：<code>Lt RAPN POD2</code>、<code>Bladder UC · GC C3D1</code>、<code>Lt APN urosepsis Abx</code>、<code>AUR · post Foley</code>、<code>New Bladder UC · staging</code><br>
+      第 2 行（選填）性別、病史：<code>70F, Hx: DM, CAD s/p PCI on aspirin</code>（多行 Underlying Hx 直接貼）<br>
+      第 3 行（選填）已排檢查：<code>Chest CT 11/2 10am, bone scan 11/3 13:00</code>，培養：<code>U/C: E. coli</code><br>
+      <b>只補一位新病人</b>請用病人頁右上角「＋」，不要只貼一段 TeamPro（不然同主治的其他病人會被判定出院）。<br>
+      <b>預約入院</b>：<code>病歷號:6012345 姓名:王ＯＯ 11/4</code>（日期＝入院日），下一行寫 <code>RARP OP 11/5</code>。
+      </div></details>` : `
+    <label class="f">每段用床號開頭，補充到今天清單上的病人：</label>
+    <textarea class="paste" id="supp" placeholder="3F21A Lt RAPN POD2&#10;3F13 Hx: CAD s/p PCI, on aspirin&#10;  DM, HTN&#10;8F20A U/C: E. coli"></textarea>
+    <div class="row2"><button class="btn" id="suppparse">整理</button></div>
+    <div id="preview"></div>`}</div>`;
+  if(mode === 'teampro'){
+    $('#clip').onclick = async () => { try{ $('#paste').value = await navigator.clipboard.readText(); }catch(e){ toast('無法讀取剪貼簿，請長按文字框貼上'); } };
+    $('#parse').onclick = parseTeamProUI;
+  } else $('#suppparse').onclick = parseSuppUI;
+}
+async function parseTeamProUI(){
+  const parsed = parseTeamPro($('#paste').value);
+  const prev = $('#preview');
+  if(!parsed.pts.length && !parsed.pres.length){ prev.innerHTML = '<div class="card">找不到病人資料。請確認每位病人的第一行是「病歷號:… 姓名:… 年齡:… 床號 入院日期:…」。</div>'; return; }
+  const withNotes = [...parsed.pts, ...parsed.pres].filter(q => noteText(q));
+  let orgNote = '';
+  if(withNotes.length && S.settings.apiKey){
+    prev.innerHTML = `<div class="card small muted"><span class="spin"></span> Claude 正在整理 ${withNotes.length} 位病人的重點…</div>`;
+    const r = await organize(withNotes.map(q => ({key:q.mrn, text:noteText(q)})));
+    if(r.by === 'claude'){ for(const q of withNotes) if(r.info[q.mrn]) q.info = r.info[q.mrn]; orgNote = `<li>Claude 已整理 ${withNotes.length} 位病人的重點</li>`; }
+    else orgNote = `<li class="faint">Claude 整理失敗，改用基本規則（${esc(r.err)}）</li>`;
+  }
+  const plan = planImport(parsed);
+  pendingImport = parsed;
+  const medChanged = parsed.pts.filter(q => { const p = S.patients[q.mrn]; if(!p || isReadmit(p, q)) return false; const base = p.medsDate && p.medsDate !== today() ? p.meds : p.medsPrev; return base && medDiffCount({medDiff:diffMeds(base, q.meds)}); });
+  const byAtt = {}; for(const q of parsed.pts) byAtt[q.att || '未指定主治'] = (byAtt[q.att || '未指定主治'] || 0) + 1;
+  const names = list => esc(list.map(q => q.name || q.mrn).join('、'));
+  prev.innerHTML = `<div class="card"><h2>解析結果</h2><ul class="sum" style="padding-left:18px;margin:0">
+    ${parsed.pts.length ? `<li>住院中 <b>${parsed.pts.length}</b> 位：${Object.entries(byAtt).map(([a,n]) => `${esc(a)} ${n} 位`).join('、')}</li>` : ''}
+    ${plan.newOnes.length?`<li>新病人 ${plan.newOnes.length}：${names(plan.newOnes)}</li>`:''}
+    ${plan.readmits.length?`<li>再次入院 ${plan.readmits.length}：${names(plan.readmits)}（保留上次的病史與 Lab）</li>`:''}
+    ${plan.surgeries.length?`<li>帶入已排手術 ${plan.surgeries.length}：${names(plan.surgeries)}</li>`:''}
+    ${orgNote || (plan.withInfo.length?`<li>帶入主診斷 ${plan.withInfo.length} 位</li>`:'')}
+    ${plan.moved.length?`<li style="color:var(--amber)">換床 ${plan.moved.length}：${plan.moved.map(q => `${esc(q.name)} ${esc(bedShort(S.patients[q.mrn].bed))}→${esc(bedShort(q.bed))}`).join('、')}</li>`:''}
+    ${medChanged.length?`<li>用藥有變動：${names(medChanged)}</li>`:''}
+    ${parsed.pres.length?`<li>預約入院 ${parsed.pres.length} 位：${parsed.pres.map(q => `${esc(q.name || q.mrn)}${q.admDate?` ${md(q.admDate)}`:''}`).join('、')}</li>`:''}
+    ${parsed.bad.length?`<li class="faint">有 ${parsed.bad.length} 行無法辨識，已略過</li>`:''}
+  </ul>
+  ${plan.merges.length ? `<h2 style="margin-top:12px">可能是同一位病人（勾選＝合併）</h2>${plan.merges.map((m,i) => `<label class="chk"><input type="checkbox" checked data-merge="${i}">手動新增的 ${esc(m.tmpName || '')} ${esc(bedShort(m.tmpBed))} ＝ ${esc(m.name)} #${esc(m.mrn)}</label>`).join('')}` : ''}
+  ${plan.missing.length ? `<h2 style="margin-top:12px">將移到已出院（不在這次名單裡）</h2>
+    <div class="small muted">取消勾選可以保留在清單上</div>
+    ${plan.missing.map(p => `<label class="chk"><input type="checkbox" checked data-dc="${p.mrn}"> ${esc(bedShort(p.bed))} ${esc(p.name)} <span class="when">${esc(p.short||'')}</span></label>`).join('')}` : ''}
+  <div class="row2"><button class="btn" id="confirm">確認匯入</button></div></div>`;
+  $('#confirm').onclick = () => {
+    const dc = [...document.querySelectorAll('[data-dc]:checked')].map(x => x.dataset.dc);
+    const mg = [...document.querySelectorAll('[data-merge]:checked')].map(x => plan.merges[+x.dataset.merge]);
+    const gone = dc.map(m => S.patients[m] && S.patients[m].name).filter(Boolean);
+    selDate = today(); location.hash = '#/';
+    act(gone.length ? `匯入完成，${gone.join('、')} 移到已出院` : '匯入完成', () => applyImport(pendingImport, dc, mg));
+    pendingImport = null;
+  };
+}
+async function parseSuppUI(){
+  const groups = parseSupplement($('#supp').value);
+  const prev = $('#preview');
+  if(!groups.length){ prev.innerHTML = '<div class="card small">每段要用床號開頭，例如 <code>3F21A Lt RAPN POD2</code></div>'; return; }
+  const ok = groups.filter(g => g.patient);
+  prev.innerHTML = `<div class="card small muted">${S.settings.apiKey ? '<span class="spin"></span> 整理中…' : ''}</div>`;
+  const r = await organize(ok.map(g => ({key:g.patient.mrn, text:g.lines.join('\n')})));
+  prev.innerHTML = `<div class="card">${groups.map(g => g.patient ? `<div style="margin-bottom:8px"><b>${esc(bedShort(g.patient.bed))} ${esc(g.patient.name)}</b>${infoSummary(r.info[g.patient.mrn] || {})}</div>` : `<div class="faint" style="margin-bottom:8px">${esc(g.bed)}：今天清單上找不到這床</div>`).join('')}
+    ${r.err ? `<div class="faint small">Claude 整理失敗，改用基本規則（${esc(r.err)}）</div>` : ''}
+    <div class="row2"><button class="btn" id="suppok" ${ok.length?'':'disabled'}>套用</button></div></div>`;
+  $('#suppok').onclick = () => act(`已補充 ${ok.length} 位病人`, () => { for(const g of ok) if(r.info[g.patient.mrn]) mergeInfo(S.patients[g.patient.mrn], r.info[g.patient.mrn]); });
+}
+
+// ================= settings =================
+async function backup(){
+  const t = today();
+  const json = JSON.stringify(S);
+  const name = `查房備份-${t}.json`;
+  const done = () => { S.settings.lastBackup = t; save(); render(); toast('已備份'); };
+  try{
+    const file = new File([json], name, {type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:'查房備份'}); return done(); }
+  }catch(e){ if(e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], {type:'application/json'})); a.download = name; a.click();
+  done();
+}
+function viewSettings(){
+  const archived = Object.values(S.patients).filter(p => !isPending(p) && !admittedNow(p)).sort((a,b) => (b.dischargedOn||'').localeCompare(a.dischargedOn||''));
+  const m = today().slice(0,7), conf = S.months[m];
+  const st = S.settings;
+  $('#app').innerHTML = `<div class="top"><h1>設定</h1></div><div class="wrap">
+    <div class="card"><h2>本月主治與門診日<span class="sp"></span><button data-month>設定</button></h2>
+      ${conf && conf.attendings.length ? conf.attendings.map(a => `<div class="lrow"><span class="grow">${esc(a.code)}</span><span class="muted small">${a.days.length ? '門診 ' + a.days.map(w => '週' + WD[w]).join('、') : '未設定門診日'}</span></div>`).join('') : '<div class="faint small">尚未設定</div>'}</div>
+    <div class="card"><h2>備份到 iCloud Drive</h2>
+      <div class="small muted">資料只存在這支手機的主畫面 App 裡。按「備份」→ 選「儲存到檔案」→ iCloud Drive，MacBook 的 iCloud Drive 就看得到備份檔。${st.lastBackup ? `上次備份：${md(st.lastBackup)}` : '還沒有備份過。'}</div>
+      <div class="row2"><button class="btn" data-backup>備份</button><label class="btn sec" style="text-align:center">從備份還原<input type="file" accept="application/json,.json" hidden id="restorefile"></label></div></div>
+    <div class="card"><h2>Claude API key</h2>
+      <input class="t" type="password" id="key" value="${esc(st.apiKey)}" placeholder="sk-ant-…" autocomplete="off">
+      <div class="small muted" style="margin-top:6px">用於照片判讀與整理病史，只存在這支手機上。</div>
+      <div class="row2"><button class="btn" id="savekey">儲存</button></div></div>
+    <div class="card"><h2>術式選項</h2>
+      <div class="chips">${st.procedures.map((p,i) => `<button data-delproc="${i}">${esc(p)} ×</button>`).join('')}</div>
+      <div class="inl"><input id="newproc" placeholder="新增術式"><button class="btn sm" id="addproc">加入</button></div></div>
+    <div class="card"><h2>開刀房（點選切換是否可排達文西）</h2>
+      <div class="chips">${st.rooms.map(r => `<button data-robot="${esc(r)}" class="${st.robotRooms.includes(r)?'on':''}">${esc(r)}${st.robotRooms.includes(r)?' 達文西':''}</button>`).join('')}</div>
+      <div class="inl"><input id="newroom" inputmode="numeric" placeholder="新增房號"><button class="btn sm" id="addroom">加入</button><button class="btn sm sec" id="delroom">刪除</button></div></div>
+    <div class="card"><h2>術前準備清單範本（期限 OP 前 ${PREOP_DAYS} 天）</h2>
+      ${st.checklist.map((c,i) => `<div class="lrow"><input class="t grow" data-cl="${i}" value="${esc(c.label)}"><select class="t" style="width:96px" data-clw="${i}">${[['all','全部'],['outpatient','門診手術'],['anti','有抗凝']].map(([k,l]) => `<option value="${k}" ${c.when===k?'selected':''}>${l}</option>`).join('')}</select><button class="xbtn" data-cldel="${i}">×</button></div>`).join('')}
+      <div class="row2"><button class="btn sec sm" id="cladd">＋ 項目</button></div></div>
+    <div class="card"><h2>病人頁版面<span class="sp"></span><button data-layout>編輯</button></h2></div>
+    <div class="card"><h2>最近操作（這次開啟期間）</h2>
+      ${UNDO.length ? UNDO.map((u,i) => `<div class="lrow"><span class="grow">${esc(u.label)} <span class="faint small">${u.at.getHours()}:${pad(u.at.getMinutes())}</span></span><button class="ib" data-undo="${i}">復原到這之前</button></div>`).join('') : '<div class="faint small">無</div>'}</div>
+    <div class="card"><h2>已出院（${archived.length}）</h2>
+      ${archived.slice(0,40).map(p => `<div class="lrow"><span class="grow">${esc(p.name)} <span class="muted small">${esc(p.short || (p.history&&p.history[0]&&p.history[0].dx) || '')} · ${md(p.dischargedOn)}</span></span><button class="ib" data-restore="${p.mrn}">恢復</button><button class="ib" style="color:var(--red)" data-purge="${p.mrn}">刪除</button></div>`).join('') || '<div class="faint small">無</div>'}</div>
+    <div class="card"><div class="row2" style="margin-top:0"><button class="btn danger" id="wipe">清除全部資料</button></div></div>
+  </div>`;
+  $('#savekey').onclick = () => { st.apiKey = $('#key').value.trim(); save(); toast('已儲存'); };
+  $('#addproc').onclick = () => { const v = $('#newproc').value.trim(); if(v && !st.procedures.includes(v)) act('已新增術式', () => st.procedures.push(v), {toast:false}); };
+  $('#addroom').onclick = () => { const v = $('#newroom').value.trim(); if(v && !st.rooms.includes(v)) act('已新增開刀房', () => st.rooms.push(v), {toast:false}); };
+  $('#delroom').onclick = () => { const v = $('#newroom').value.trim(); if(st.rooms.includes(v)) act('已刪除開刀房', () => { st.rooms = st.rooms.filter(r => r !== v); st.robotRooms = st.robotRooms.filter(r => r !== v); }); };
+  $('#cladd').onclick = () => act('已新增項目', () => st.checklist.push({id:uid(), label:'新項目', when:'all'}), {toast:false});
+  $('#app').onchange = e => {
+    if(e.target.dataset.cl !== undefined){ st.checklist[+e.target.dataset.cl].label = e.target.value.trim() || '未命名'; save(); }
+    if(e.target.dataset.clw !== undefined){ st.checklist[+e.target.dataset.clw].when = e.target.value; save(); }
+  };
+  $('#app').onclick = e => {
+    const b = e.target.closest('button'); if(!b) return;
+    const ds = b.dataset;
+    if(ds.month !== undefined) monthSetup(m);
+    if(ds.layout !== undefined) layoutSheet();
+    if(ds.delproc) act('已刪除術式', () => st.procedures.splice(+ds.delproc, 1));
+    if(ds.robot) { const r = ds.robot; st.robotRooms = st.robotRooms.includes(r) ? st.robotRooms.filter(x => x !== r) : [...st.robotRooms, r]; save(); render(); }
+    if(ds.cldel) act('已刪除項目', () => st.checklist.splice(+ds.cldel, 1));
+    if(ds.undo) undoAt(+ds.undo);
+    if(ds.restore) act('已恢復', () => { const p = S.patients[ds.restore]; if(!p.adm && p.history && p.history.length){ const h = p.history.shift(); Object.assign(p, {adm:h.adm, dx:h.dx, short:h.dx, opDate:h.opDate}); } p.dischargedOn = null; });
+    if(ds.purge && confirm('永久刪除這位病人的所有資料？')) act('已刪除病人', () => { delete S.patients[ds.purge]; });
+  };
+  $('#restorefile').onchange = async e => {
+    const f = e.target.files[0]; if(!f) return;
+    try{ const s = JSON.parse(await f.text()); if(!s.patients) throw new Error('格式不符'); if(confirm('用備份取代目前所有資料？')) act('已從備份還原', () => { const key = S.settings.apiKey; S = migrate(s); if(!S.settings.apiKey) S.settings.apiKey = key; }); }
+    catch(err){ toast('還原失敗：' + err.message); }
+  };
+  $('#wipe').onclick = () => { if(confirm('清除全部資料？清除後仍可以在「最近操作」復原，直到關閉 App。')) act('已清除全部資料', () => { const key = S.settings.apiKey; S = emptyState(); S.settings.apiKey = key; }); };
+}
+
+// ================= router & global events =================
+function render(){
+  const h = location.hash.replace(/^#\/?/, '');
+  const [route, arg] = h.split('/');
+  $('#app').onclick = null; $('#app').onchange = null; $('#app').oninput = null;
+  openRow = null;
+  if(route === 'p') viewDetail(decodeURIComponent(arg||''));
+  else if(route === 'or') viewOR();
+  else if(route === 'import') viewImport();
+  else if(route === 'settings') viewSettings();
+  else viewList();
+  tabbar(route || '');
+}
+const curPatient = () => S.patients[decodeURIComponent(location.hash.split('/')[2] || '')];
+document.addEventListener('click', e => {
+  const rm = e.target.closest('[data-remove]'); if(rm){ const p = S.patients[rm.dataset.remove]; if(p) removeFromList(p, selDate); return; }
+  const go = e.target.closest('[data-go]');
+  if(go){
+    const row = go.closest('.row');
+    if(row && row.dataset.swiped) return;
+    if(row && openRow){ closeRow(openRow); openRow = null; return; }
+    location.hash = '#/p/' + go.dataset.go; window.scrollTo(0,0); return;
+  }
+  const sg = e.target.closest('[data-surg]'); if(sg){ const s = S.surgeries[sg.dataset.surg]; if(s) surgeryForm(s); return; }
+  if(e.target.closest('[data-backup]')){ backup(); return; }
+  const day = e.target.closest('[data-date]'); if(day && !e.target.closest('#app [data-act]')){ selDate = day.dataset.date; render(); return; }
+  const ord = e.target.closest('[data-ord]'); if(ord){ orSel = ord.dataset.ord; orMonth = orSel.slice(0,7); render(); return; }
+  const mon = e.target.closest('[data-mon]'); if(mon){ const [y, m] = orMonth.split('-').map(Number); const d = new Date(y, m - 1 + +mon.dataset.mon, 1); orMonth = ymd(d).slice(0,7); render(); return; }
+  const orf = e.target.closest('[data-orf]'); if(orf){ S.settings.orFilter = orf.dataset.orf; save(); render(); return; }
+  if(e.target.closest('[data-oradd]')){ surgeryForm(null); return; }
+  if(e.target.closest('[data-orpaste]')){ orPasteSheet(); return; }
+  const im = e.target.closest('[data-imode]'); if(im){ S.settings.importMode = im.dataset.imode; save(); render(); return; }
+  if(e.target.closest('[data-add]')){ editPatient(null); return; }
+  if(e.target.closest('[data-back]')){ location.hash = '#/'; return; }
+  const f = e.target.closest('[data-filter]'); if(f){ S.settings.filter = f.dataset.filter; save(); render(); return; }
+  const due = e.target.closest('[data-due]');
+  if(due){ const p = curPatient(); const x = p && p.todos.find(x => x.id === due.dataset.due); if(x) pickDate('提醒日期', x.due || addDays(today(),1), d => { x.due = d; save(); render(); }); return; }
+  const del = e.target.closest('[data-deltodo]');
+  if(del){ const p = curPatient(); if(p) act('已刪除 order', () => { p.todos = p.todos.filter(x => x.id !== del.dataset.deltodo); }); }
+});
+document.addEventListener('change', e => {
+  const cb = e.target.closest('[data-todo]'); if(!cb) return;
+  const p = curPatient(); if(!p) return;
+  const x = p.todos.find(x => x.id === cb.dataset.todo); if(!x) return;
+  x.done = cb.checked; x.doneOn = cb.checked ? selDate : null;
+  save(); render();
+});
+document.addEventListener('submit', e => {
+  const f = e.target.closest('[data-form="todo"]'); if(!f) return;
+  e.preventDefault();
+  const p = curPatient(); const t = f.t.value.trim();
+  if(p && t) placeOrder(p, 'text', {text:t});
+});
+window.addEventListener('hashchange', render);
+let lastDay = today();
+document.addEventListener('visibilitychange', () => {   // new day while the app was in the background: jump to today
+  if(document.hidden) return;
+  if(today() !== lastDay){ lastDay = today(); selDate = lastDay; orSel = lastDay; }
+  render();
+});
+render();
+if('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
